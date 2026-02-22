@@ -45,6 +45,7 @@ const DEFAULT_DATA: AppData = {
       status: "In Progress",
       deadline: "2025-12-01",
       reminderSent: false,
+      content: "",
     },
   ],
 };
@@ -90,6 +91,15 @@ export function useLoRStore() {
     }));
   };
 
+  const updateRequestContent = (id: string, content: string) => {
+    setData((prev) => ({
+      ...prev,
+      requests: prev.requests.map((r) => 
+        r.id === id ? { ...r, content, lastEdited: new Date().toISOString() } : r
+      ),
+    }));
+  };
+
   const deleteProfessor = (id: string) => {
     setData((prev) => ({
       ...prev,
@@ -112,6 +122,7 @@ export function useLoRStore() {
     addApplication,
     addRequest,
     updateRequestStatus,
+    updateRequestContent,
     deleteProfessor,
     deleteApplication,
   };

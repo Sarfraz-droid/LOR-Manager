@@ -2,17 +2,19 @@ import { LoRRequest, Professor, UniversityApplication, LoRStatus } from "@/lib/t
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
-import { Calendar, Building2, User } from "lucide-react";
+import { Calendar, Building2, User, PenTool } from "lucide-react";
 
 interface LoRRequestRowProps {
   request: LoRRequest;
   professor?: Professor;
   application?: UniversityApplication;
   onStatusChange: (id: string, status: LoRStatus) => void;
+  onWrite: (request: LoRRequest) => void;
 }
 
-export function LoRRequestRow({ request, professor, application, onStatusChange }: LoRRequestRowProps) {
+export function LoRRequestRow({ request, professor, application, onStatusChange, onWrite }: LoRRequestRowProps) {
   const isUrgent = new Date(request.deadline).getTime() - new Date().getTime() < 1000 * 60 * 60 * 24 * 7;
 
   return (
@@ -46,19 +48,30 @@ export function LoRRequestRow({ request, professor, application, onStatusChange 
         </div>
       </TableCell>
       <TableCell>
-        <Select
-          defaultValue={request.status}
-          onValueChange={(val) => onStatusChange(request.id, val as LoRStatus)}
-        >
-          <SelectTrigger className="w-[140px] h-8 text-xs font-medium border-accent/20 focus:ring-accent">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="Requested">Requested</SelectItem>
-            <SelectItem value="In Progress">In Progress</SelectItem>
-            <SelectItem value="Submitted">Submitted</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2">
+          <Select
+            defaultValue={request.status}
+            onValueChange={(val) => onStatusChange(request.id, val as LoRStatus)}
+          >
+            <SelectTrigger className="w-[120px] h-8 text-xs font-medium border-accent/20 focus:ring-accent">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Requested">Requested</SelectItem>
+              <SelectItem value="In Progress">In Progress</SelectItem>
+              <SelectItem value="Submitted">Submitted</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => onWrite(request)}
+            className="h-8 text-accent hover:text-accent hover:bg-accent/10"
+          >
+            <PenTool className="h-3.5 w-3.5 mr-1" />
+            Write
+          </Button>
+        </div>
       </TableCell>
       <TableCell className="text-right">
         <Badge

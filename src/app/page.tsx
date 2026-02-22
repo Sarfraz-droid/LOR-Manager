@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useLoRStore } from "@/lib/store";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -10,8 +11,12 @@ import { NewProfessorDialog } from "@/components/dashboard/NewProfessorDialog";
 import { NewApplicationDialog } from "@/components/dashboard/NewApplicationDialog";
 import { NewRequestDialog } from "@/components/dashboard/NewRequestDialog";
 import { AISuggestionTool } from "@/components/dashboard/AISuggestionTool";
+import { LoREditor } from "@/components/dashboard/LoREditor";
 import { GraduationCap, ClipboardList, BookOpen, Sparkles, LayoutDashboard, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { LoRRequest } from "@/lib/types";
+import { Toaster } from "@/components/ui/toaster";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Home() {
   const { 
@@ -22,14 +27,40 @@ export default function Home() {
     addApplication, 
     addRequest, 
     updateRequestStatus,
+    updateRequestContent,
     deleteProfessor,
     deleteApplication
   } = useLoRStore();
 
+  const { toast } = useToast();
+  const [editingRequest, setEditingRequest] = useState<LoRRequest | null>(null);
+
   const pendingCount = requests.filter(r => r.status !== "Submitted").length;
+
+  const handleSaveLoR = (content: string) => {
+    if (editingRequest) {
+      updateRequestContent(editingRequest.id, content);
+      toast({
+        title: "Draft Saved",
+        description: "Your letter of recommendation has been saved to your dashboard.",
+      });
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-background font-body">
+      <Toaster />
+      
+      {editingRequest && (
+        <LoREditor 
+          request={editingRequest}
+          professor={professors.find(p => p.id === editingRequest.professorId)}
+          application={applications.find(a => a.id === editingRequest.applicationId)}
+          onSave={handleSaveLoR}
+          onClose={() => setEditingRequest(null)}
+        />
+      )}
+
       {/* Sidebar Navigation */}
       <aside className="w-full md:w-64 bg-primary text-primary-foreground p-6 flex flex-col gap-8 shadow-xl">
         <div className="flex items-center gap-3">
@@ -121,6 +152,7 @@ export default function Home() {
                             key={req.id} 
                             request={req} 
                             onStatusChange={updateRequestStatus}
+                            onWrite={setEditingRequest}
                             professor={professors.find(p => p.id === req.professorId)}
                             application={applications.find(a => a.id === req.applicationId)}
                           />

@@ -23,4 +23,6 @@ export type LoRRequest = {
   status: LoRStatus;
   deadline: string;
   reminderSent: boolean;
+  content?: string;
+  lastEdited?: string;
 };
