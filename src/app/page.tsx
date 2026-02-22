@@ -1,3 +1,209 @@
+"use client";
+
+import { useLoRStore } from "@/lib/store";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { ProfessorCard } from "@/components/dashboard/ProfessorCard";
+import { LoRRequestRow } from "@/components/dashboard/LoRRequestRow";
+import { Table, TableBody, TableHeader, TableHead, TableRow, TableCell } from "@/components/ui/table";
+import { NewProfessorDialog } from "@/components/dashboard/NewProfessorDialog";
+import { NewApplicationDialog } from "@/components/dashboard/NewApplicationDialog";
+import { NewRequestDialog } from "@/components/dashboard/NewRequestDialog";
+import { AISuggestionTool } from "@/components/dashboard/AISuggestionTool";
+import { GraduationCap, ClipboardList, BookOpen, Sparkles, LayoutDashboard, Clock } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+
 export default function Home() {
-  return <></>;
+  const { 
+    professors, 
+    applications, 
+    requests, 
+    addProfessor, 
+    addApplication, 
+    addRequest, 
+    updateRequestStatus,
+    deleteProfessor,
+    deleteApplication
+  } = useLoRStore();
+
+  const pendingCount = requests.filter(r => r.status !== "Submitted").length;
+
+  return (
+    <div className="min-h-screen flex flex-col md:flex-row bg-background font-body">
+      {/* Sidebar Navigation */}
+      <aside className="w-full md:w-64 bg-primary text-primary-foreground p-6 flex flex-col gap-8 shadow-xl">
+        <div className="flex items-center gap-3">
+          <div className="bg-accent p-2 rounded-lg">
+            <BookOpen className="h-6 w-6 text-accent-foreground" />
+          </div>
+          <div>
+            <h1 className="text-xl font-headline font-bold leading-none">LoR Tracker</h1>
+            <span className="text-[10px] uppercase tracking-widest font-bold text-accent">Professional Edition</span>
+          </div>
+        </div>
+
+        <nav className="flex flex-col gap-2">
+          <div className="text-[10px] uppercase font-bold text-primary-foreground/50 mb-2">Overview</div>
+          <div className="flex items-center gap-3 px-3 py-2 bg-white/10 rounded-md">
+            <LayoutDashboard className="h-4 w-4" />
+            <span className="text-sm font-medium">Dashboard</span>
+          </div>
+        </nav>
+
+        <div className="mt-auto p-4 bg-accent/20 rounded-xl border border-accent/30">
+          <div className="flex items-center gap-2 mb-2">
+            <Clock className="h-4 w-4 text-accent" />
+            <span className="text-xs font-bold uppercase">Pending Letters</span>
+          </div>
+          <div className="text-3xl font-headline font-bold text-accent">{pendingCount}</div>
+          <p className="text-[10px] text-primary-foreground/70 mt-1">Don't forget to send reminders!</p>
+        </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <main className="flex-1 p-4 md:p-8 overflow-y-auto">
+        <header className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <h2 className="text-4xl font-headline font-bold text-primary">Academic Portfolio</h2>
+            <p className="text-muted-foreground font-literata">Manage your letters of recommendation and application targets.</p>
+          </div>
+          <div className="flex gap-2">
+            <NewRequestDialog professors={professors} applications={applications} onAdd={addRequest} />
+          </div>
+        </header>
+
+        <Tabs defaultValue="requests" className="w-full">
+          <TabsList className="bg-muted/50 p-1 h-auto mb-8 grid grid-cols-2 md:grid-cols-4 gap-2">
+            <TabsTrigger value="requests" className="data-[state=active]:bg-white py-2">
+              <ClipboardList className="h-4 w-4 mr-2" /> Requests
+            </TabsTrigger>
+            <TabsTrigger value="professors" className="data-[state=active]:bg-white py-2">
+              <GraduationCap className="h-4 w-4 mr-2" /> Professors
+            </TabsTrigger>
+            <TabsTrigger value="applications" className="data-[state=active]:bg-white py-2">
+              <BookOpen className="h-4 w-4 mr-2" /> Applications
+            </TabsTrigger>
+            <TabsTrigger value="ai" className="data-[state=active]:bg-white py-2">
+              <Sparkles className="h-4 w-4 mr-2" /> AI Suggestion
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="requests" className="space-y-4 animate-in fade-in duration-300">
+            <Card className="border-none shadow-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                <div>
+                  <CardTitle className="text-2xl">Letter Tracking</CardTitle>
+                  <CardDescription>Monitor the status of your requested letters.</CardDescription>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-md border border-accent/10">
+                  <Table>
+                    <TableHeader className="bg-muted/30">
+                      <TableRow>
+                        <TableHead>Professor</TableHead>
+                        <TableHead>Application</TableHead>
+                        <TableHead>Deadline</TableHead>
+                        <TableHead>Action</TableHead>
+                        <TableHead className="text-right">Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {requests.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center py-12 text-muted-foreground italic">
+                            No requests logged yet. Start by adding a professor and an application.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        requests.map(req => (
+                          <LoRRequestRow 
+                            key={req.id} 
+                            request={req} 
+                            onStatusChange={updateRequestStatus}
+                            professor={professors.find(p => p.id === req.professorId)}
+                            application={applications.find(a => a.id === req.applicationId)}
+                          />
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="professors" className="space-y-6 animate-in fade-in duration-300">
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="text-2xl font-headline font-bold text-primary">Faculty Network</h3>
+                <p className="text-sm text-muted-foreground font-literata">Maintain contact details and areas of expertise for your recommenders.</p>
+              </div>
+              <NewProfessorDialog onAdd={addProfessor} />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {professors.map(prof => (
+                <ProfessorCard key={prof.id} professor={prof} onDelete={deleteProfessor} />
+              ))}
+              {professors.length === 0 && (
+                <div className="col-span-full py-12 text-center border-2 border-dashed rounded-xl bg-muted/20">
+                  <p className="text-muted-foreground">You haven't added any professor profiles yet.</p>
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="applications" className="space-y-6 animate-in fade-in duration-300">
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="text-2xl font-headline font-bold text-primary">Application Targets</h3>
+                <p className="text-sm text-muted-foreground font-literata">List the programs and scholarships you are applying to.</p>
+              </div>
+              <NewApplicationDialog onAdd={addApplication} />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {applications.map(app => (
+                <Card key={app.id} className="group overflow-hidden border-accent/20">
+                  <div className="h-2 bg-accent/20 w-full" />
+                  <CardHeader>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle className="text-xl text-primary">{app.university}</CardTitle>
+                        <CardDescription className="text-accent font-bold">{app.program}</CardDescription>
+                      </div>
+                      <Badge variant="outline" className="border-accent text-accent">
+                        {app.deadline}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="font-literata text-sm text-muted-foreground italic">
+                    {app.description || "No specific notes provided."}
+                  </CardContent>
+                  <CardFooter className="bg-muted/20 py-3 flex justify-end">
+                    <button 
+                      onClick={() => deleteApplication(app.id)}
+                      className="text-xs text-destructive hover:underline font-bold"
+                    >
+                      Remove Target
+                    </button>
+                  </CardFooter>
+                </Card>
+              ))}
+              {applications.length === 0 && (
+                <div className="col-span-full py-12 text-center border-2 border-dashed rounded-xl bg-muted/20">
+                  <p className="text-muted-foreground">No applications tracked yet.</p>
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="ai" className="animate-in fade-in duration-300">
+            <div className="max-w-3xl mx-auto">
+              <AISuggestionTool professors={professors} />
+            </div>
+          </TabsContent>
+        </Tabs>
+      </main>
+    </div>
+  );
 }
