@@ -143,8 +143,8 @@ export function LoREditor({ request, professor, application, onSave, onClose }: 
                     className="w-full h-full border-none focus-visible:ring-0 text-lg leading-relaxed font-literata resize-none p-0 bg-transparent min-h-[600px] placeholder:text-muted/30"
                   />
                 ) : (
-                  <div className="prose prose-slate max-w-none font-literata text-lg leading-relaxed text-primary">
-                    <ReactMarkdown className="markdown-preview">
+                  <div className="prose prose-slate max-w-none font-literata text-lg leading-relaxed text-primary markdown-preview">
+                    <ReactMarkdown>
                       {content || "*No content to preview. Start writing in the 'Write' tab.*"}
                     </ReactMarkdown>
                   </div>
