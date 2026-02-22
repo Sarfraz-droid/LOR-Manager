@@ -100,6 +100,15 @@ export function useLoRStore() {
     }));
   };
 
+  const markReminded = (id: string) => {
+    setData((prev) => ({
+      ...prev,
+      requests: prev.requests.map((r) => 
+        r.id === id ? { ...r, reminderSent: true } : r
+      ),
+    }));
+  };
+
   const deleteProfessor = (id: string) => {
     setData((prev) => ({
       ...prev,
@@ -123,6 +132,7 @@ export function useLoRStore() {
     addRequest,
     updateRequestStatus,
     updateRequestContent,
+    markReminded,
     deleteProfessor,
     deleteApplication,
   };

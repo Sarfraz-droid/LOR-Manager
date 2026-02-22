@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLoRStore } from "@/lib/store";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -12,7 +12,7 @@ import { NewApplicationDialog } from "@/components/dashboard/NewApplicationDialo
 import { NewRequestDialog } from "@/components/dashboard/NewRequestDialog";
 import { AISuggestionTool } from "@/components/dashboard/AISuggestionTool";
 import { LoREditor } from "@/components/dashboard/LoREditor";
-import { GraduationCap, ClipboardList, BookOpen, Sparkles, LayoutDashboard, Clock } from "lucide-react";
+import { GraduationCap, ClipboardList, BookOpen, Sparkles, LayoutDashboard, Clock, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { LoRRequest } from "@/lib/types";
 import { Toaster } from "@/components/ui/toaster";
@@ -28,6 +28,7 @@ export default function Home() {
     addRequest, 
     updateRequestStatus,
     updateRequestContent,
+    markReminded,
     deleteProfessor,
     deleteApplication
   } = useLoRStore();
@@ -36,6 +37,30 @@ export default function Home() {
   const [editingRequest, setEditingRequest] = useState<LoRRequest | null>(null);
 
   const pendingCount = requests.filter(r => r.status !== "Submitted").length;
+
+  // Automated reminders for the student
+  useEffect(() => {
+    const urgentRequests = requests.filter(req => {
+      if (req.status === "Submitted" || req.reminderSent) return false;
+      const deadlineDate = new Date(req.deadline);
+      const today = new Date();
+      const diffTime = deadlineDate.getTime() - today.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return diffDays <= 7 && diffDays >= 0;
+    });
+
+    if (urgentRequests.length > 0) {
+      urgentRequests.forEach(req => {
+        const app = applications.find(a => a.id === req.applicationId);
+        toast({
+          title: "Personal Deadline Reminder",
+          description: `The application for ${app?.university || 'an institution'} is due in less than a week!`,
+          variant: "destructive",
+        });
+        markReminded(req.id);
+      });
+    }
+  }, [requests, applications, toast, markReminded]);
 
   const handleSaveLoR = (content: string) => {
     if (editingRequest) {
@@ -83,11 +108,11 @@ export default function Home() {
 
         <div className="mt-auto p-4 bg-accent/20 rounded-xl border border-accent/30">
           <div className="flex items-center gap-2 mb-2">
-            <Clock className="h-4 w-4 text-accent" />
-            <span className="text-xs font-bold uppercase">Pending Letters</span>
+            <AlertTriangle className="h-4 w-4 text-accent" />
+            <span className="text-xs font-bold uppercase">Personal Alerts</span>
           </div>
           <div className="text-3xl font-headline font-bold text-accent">{pendingCount}</div>
-          <p className="text-[10px] text-primary-foreground/70 mt-1">Don't forget to send reminders!</p>
+          <p className="text-[10px] text-primary-foreground/70 mt-1">Review your upcoming deadlines!</p>
         </div>
       </aside>
 
