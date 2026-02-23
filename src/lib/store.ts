@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import type { User } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
 import { Professor, UniversityApplication, LoRRequest } from "./types";
 
@@ -74,17 +75,33 @@ function toRequest(row: RequestRow): LoRRequest {
 // Hook
 // ---------------------------------------------------------------------------
 export function useLoRStore() {
+  const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [professors, setProfessors] = useState<Professor[]>([]);
   const [applications, setApplications] = useState<UniversityApplication[]>([]);
   const [requests, setRequests] = useState<LoRRequest[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const loadData = useCallback(async () => {
+  // Listen to auth state changes
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      setAuthLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const loadData = useCallback(async (uid: string) => {
     setIsLoading(true);
     const [profsRes, appsRes, reqsRes] = await Promise.all([
-      supabase.from("professors").select("*"),
-      supabase.from("university_applications").select("*"),
-      supabase.from("lor_requests").select("*"),
+      supabase.from("professors").select("*").eq("user_id", uid),
+      supabase.from("university_applications").select("*").eq("user_id", uid),
+      supabase.from("lor_requests").select("*").eq("user_id", uid),
     ]);
 
     if (!profsRes.error) setProfessors((profsRes.data as ProfessorRow[]).map(toProfessor));
@@ -95,15 +112,53 @@ export function useLoRStore() {
   }, []);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    if (user) {
+      loadData(user.id);
+    } else {
+      setProfessors([]);
+      setApplications([]);
+      setRequests([]);
+    }
+  }, [user, loadData]);
+
+  // -------------------------------------------------------------------------
+  // Auth
+  // -------------------------------------------------------------------------
+  const signIn = useCallback(async (email: string, password: string): Promise<string | null> => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    return error ? error.message : null;
+  }, []);
+
+  const signUp = useCallback(async (email: string, password: string): Promise<string | null> => {
+    const { error } = await supabase.auth.signUp({ email, password });
+    return error ? error.message : null;
+  }, []);
+
+  const signInWithGoogle = useCallback(async (): Promise<string | null> => {
+    // Use the explicitly configured site URL (required in production so Supabase
+    // redirects back to the deployed app instead of its default Site URL).
+    // Falls back to the current browser origin for local development.
+    const redirectTo =
+      process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin;
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo },
+    });
+    return error ? error.message : null;
+  }, []);
+
+  const signOut = useCallback(async () => {
+    await supabase.auth.signOut();
+  }, []);
 
   // -------------------------------------------------------------------------
   // Mutations
   // -------------------------------------------------------------------------
   const addProfessor = useCallback(async (prof: Professor) => {
+    if (!user) return;
     const { error } = await supabase.from("professors").insert({
       id: prof.id,
+      user_id: user.id,
       name: prof.name,
       email: prof.email,
       expertise: prof.expertise,
@@ -111,11 +166,13 @@ export function useLoRStore() {
     });
     if (!error) setProfessors((prev) => [...prev, prof]);
     else console.error("addProfessor:", error.message);
-  }, []);
+  }, [user]);
 
   const addApplication = useCallback(async (app: UniversityApplication) => {
+    if (!user) return;
     const { error } = await supabase.from("university_applications").insert({
       id: app.id,
+      user_id: user.id,
       university: app.university,
       program: app.program,
       deadline: app.deadline,
@@ -123,11 +180,13 @@ export function useLoRStore() {
     });
     if (!error) setApplications((prev) => [...prev, app]);
     else console.error("addApplication:", error.message);
-  }, []);
+  }, [user]);
 
   const addRequest = useCallback(async (req: LoRRequest) => {
+    if (!user) return;
     const { error } = await supabase.from("lor_requests").insert({
       id: req.id,
+      user_id: user.id,
       professor_id: req.professorId,
       application_id: req.applicationId,
       status: req.status,
@@ -137,7 +196,7 @@ export function useLoRStore() {
     });
     if (!error) setRequests((prev) => [...prev, req]);
     else console.error("addRequest:", error.message);
-  }, []);
+  }, [user]);
 
   const updateRequestStatus = useCallback(async (id: string, status: LoRRequest["status"]) => {
     const { error } = await supabase
@@ -203,10 +262,16 @@ export function useLoRStore() {
   }, []);
 
   return {
+    user,
+    authLoading,
     professors,
     applications,
     requests,
     isLoading,
+    signIn,
+    signUp,
+    signInWithGoogle,
+    signOut,
     addProfessor,
     addApplication,
     addRequest,
