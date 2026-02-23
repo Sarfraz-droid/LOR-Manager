@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SopEntry } from "@/lib/types";
-import { ArrowLeft, Save, Download, Sparkles, Loader2, FileText } from "lucide-react";
+import { ArrowLeft, Save, Download, Sparkles, Loader2, FileText, CheckCircle } from "lucide-react";
 import { generateSopDraft } from "@/ai/flows/generate-sop-draft";
 import { Document, Packer, Paragraph, TextRun } from "docx";
 import { saveAs } from "file-saver";
@@ -52,6 +52,8 @@ function stripHtml(html: string): string {
     .trim();
 }
 
+const AUTOSAVE_DELAY = 2000;
+
 export function SopEditor({ sop, onSave, onClose }: SopEditorProps) {
   const [content, setContent] = useState(() => textToHtml(sop.content || ""));
   const [isDrafting, setIsDrafting] = useState(false);
@@ -59,6 +61,30 @@ export function SopEditor({ sop, onSave, onClose }: SopEditorProps) {
   const [achievements, setAchievements] = useState("");
   const [goals, setGoals] = useState("");
   const [showAiPanel, setShowAiPanel] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isFirstRender = useRef(true);
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+    if (idleTimer.current) clearTimeout(idleTimer.current);
+    setSaveStatus("saving");
+    autosaveTimer.current = setTimeout(() => {
+      onSave(content);
+      setSaveStatus("saved");
+      idleTimer.current = setTimeout(() => setSaveStatus("idle"), 2000);
+    }, AUTOSAVE_DELAY);
+    return () => {
+      if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+      if (idleTimer.current) clearTimeout(idleTimer.current);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [content]);
 
   const handleDownload = async () => {
     const plainText = stripHtml(content);
@@ -116,6 +142,18 @@ export function SopEditor({ sop, onSave, onClose }: SopEditorProps) {
         </div>
 
         <div className="flex items-center gap-2">
+          {saveStatus === "saving" && (
+            <span className="flex items-center gap-1 text-xs text-muted-foreground" aria-live="polite">
+              <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
+              Saving…
+            </span>
+          )}
+          {saveStatus === "saved" && (
+            <span className="flex items-center gap-1 text-xs text-green-600" aria-live="polite">
+              <CheckCircle className="h-3 w-3" aria-hidden="true" />
+              Saved
+            </span>
+          )}
           <Button
             variant="outline"
             size="sm"
