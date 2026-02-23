@@ -16,18 +16,26 @@ import { NewSopDialog } from "@/components/dashboard/NewSopDialog";
 import { AISuggestionTool } from "@/components/dashboard/AISuggestionTool";
 import { LoREditor } from "@/components/dashboard/LoREditor";
 import { SopEditor } from "@/components/dashboard/SopEditor";
-import { GraduationCap, ClipboardList, BookOpen, Sparkles, LayoutDashboard, AlertTriangle, ScrollText } from "lucide-react";
+import { AuthForm } from "@/components/auth/AuthForm";
+import { GraduationCap, ClipboardList, BookOpen, Sparkles, LayoutDashboard, AlertTriangle, ScrollText, LogOut } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { LoRRequest, SopEntry } from "@/lib/types";
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Home() {
   const { 
+    user,
+    authLoading,
     professors, 
     applications, 
     requests,
     isLoading,
+    signIn,
+    signUp,
+    signInWithGoogle,
+    signOut,
     addProfessor, 
     addApplication, 
     addRequest, 
@@ -46,7 +54,7 @@ export default function Home() {
     updateSopStatus,
     updateSopContent,
     deleteSop,
-  } = useSopStore();
+  } = useSopStore(user?.id ?? null);
 
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("requests");
@@ -103,6 +111,28 @@ export default function Home() {
       });
     }
   };
+
+  // Show a full-screen spinner while checking existing auth session
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-accent border-t-transparent" />
+          <p className="text-sm text-muted-foreground font-medium">Loading…</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show auth form when not signed in
+  if (!user) {
+    return (
+      <>
+        <Toaster />
+        <AuthForm onSignIn={signIn} onSignUp={signUp} onSignInWithGoogle={signInWithGoogle} />
+      </>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-background font-body">
@@ -165,13 +195,28 @@ export default function Home() {
           </button>
         </nav>
 
-        <div className="mt-auto p-4 bg-accent/20 rounded-xl border border-accent/30">
-          <div className="flex items-center gap-2 mb-2">
-            <AlertTriangle className="h-4 w-4 text-accent" />
-            <span className="text-xs font-bold uppercase">Personal Alerts</span>
+        <div className="mt-auto flex flex-col gap-3">
+          <div className="p-4 bg-accent/20 rounded-xl border border-accent/30">
+            <div className="flex items-center gap-2 mb-2">
+              <AlertTriangle className="h-4 w-4 text-accent" />
+              <span className="text-xs font-bold uppercase">Personal Alerts</span>
+            </div>
+            <div className="text-3xl font-headline font-bold text-accent">{pendingCount}</div>
+            <p className="text-[10px] text-primary-foreground/70 mt-1">Review your upcoming deadlines!</p>
           </div>
-          <div className="text-3xl font-headline font-bold text-accent">{pendingCount}</div>
-          <p className="text-[10px] text-primary-foreground/70 mt-1">Review your upcoming deadlines!</p>
+
+          <div className="px-1">
+            <p className="text-[10px] text-primary-foreground/50 truncate mb-2">{user.email}</p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full text-primary-foreground border-primary-foreground/30 hover:bg-white/10 hover:text-primary-foreground bg-transparent"
+              onClick={signOut}
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Sign Out
+            </Button>
+          </div>
         </div>
       </aside>
 
