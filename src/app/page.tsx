@@ -16,7 +16,6 @@ import { NewSopDialog } from "@/components/dashboard/NewSopDialog";
 import { AISuggestionTool } from "@/components/dashboard/AISuggestionTool";
 import { LoREditor } from "@/components/dashboard/LoREditor";
 import { SopEditor } from "@/components/dashboard/SopEditor";
-import { AuthForm } from "@/components/auth/AuthForm";
 import { GraduationCap, ClipboardList, BookOpen, Sparkles, LayoutDashboard, AlertTriangle, ScrollText, LogOut } from "lucide-react";
 import { LoRRequest, SopEntry } from "@/lib/types";
 import { AuthForm } from "@/components/auth/AuthForm";
