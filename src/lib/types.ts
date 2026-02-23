@@ -26,3 +26,15 @@ export type LoRRequest = {
   content?: string;
   lastEdited?: string;
 };
+
+export type SopStatus = 'Draft' | 'In Progress' | 'Finalized';
+
+export type SopEntry = {
+  id: string;
+  college: string;
+  program: string;
+  deadline: string;
+  status: SopStatus;
+  content?: string;
+  lastEdited?: string;
+};

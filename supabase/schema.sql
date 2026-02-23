@@ -42,3 +42,19 @@ create policy "Allow all for university_applications"
 
 create policy "Allow all for lor_requests"
   on lor_requests for all using (true) with check (true);
+
+-- SOP Manager tables
+create table if not exists sop_entries (
+  id          text primary key,
+  college     text not null,
+  program     text not null,
+  deadline    text not null,
+  status      text not null default 'Draft',
+  content     text not null default '',
+  last_edited text
+);
+
+alter table sop_entries enable row level security;
+
+create policy "Allow all for sop_entries"
+  on sop_entries for all using (true) with check (true);
