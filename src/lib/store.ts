@@ -135,9 +135,14 @@ export function useLoRStore() {
   }, []);
 
   const signInWithGoogle = useCallback(async (): Promise<string | null> => {
+    // Use the explicitly configured site URL (required in production so Supabase
+    // redirects back to the deployed app instead of its default Site URL).
+    // Falls back to the current browser origin for local development.
+    const redirectTo =
+      process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin;
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: window.location.origin },
+      options: { redirectTo },
     });
     return error ? error.message : null;
   }, []);
