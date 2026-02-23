@@ -22,7 +22,8 @@ export default function Home() {
   const { 
     professors, 
     applications, 
-    requests, 
+    requests,
+    isLoading,
     addProfessor, 
     addApplication, 
     addRequest, 
@@ -75,6 +76,15 @@ export default function Home() {
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-background font-body">
       <Toaster />
+
+      {isLoading && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-3">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-accent border-t-transparent" />
+            <p className="text-sm text-muted-foreground font-medium">Loading data…</p>
+          </div>
+        </div>
+      )}
       
       {editingRequest && (
         <LoREditor 
