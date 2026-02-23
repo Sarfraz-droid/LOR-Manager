@@ -1,14 +1,18 @@
 -- Migration: add user_id to existing tables and replace permissive RLS policies
 -- Run this in the Supabase SQL editor if your tables were created before
 -- authentication was added (i.e. they are missing the user_id column).
+-- WARNING: After running this migration, existing rows (which will have
+-- user_id = NULL) will NOT be returned by the per-user RLS policies.
+-- This is intentional – pre-auth data had no owner and should not be
+-- exposed to any user. To preserve existing data, manually assign ownership
+-- before running this migration:
+--   UPDATE professors SET user_id = '<your-uuid>' WHERE user_id IS NULL;
+--   UPDATE university_applications SET user_id = '<your-uuid>' WHERE user_id IS NULL;
+--   UPDATE lor_requests SET user_id = '<your-uuid>' WHERE user_id IS NULL;
+--   UPDATE sop_entries SET user_id = '<your-uuid>' WHERE user_id IS NULL;
 
 -- -------------------------------------------------------------------------
 -- 1. Add user_id column to each table
---    NOTE: Existing rows will have user_id = NULL and will NOT be returned
---    by the per-user RLS policies below (auth.uid() = NULL is false).
---    This is intentional – pre-auth data had no owner and should not be
---    exposed to any user.  If you need to keep existing rows, update them
---    manually: UPDATE professors SET user_id = '<your-uuid>' WHERE user_id IS NULL;
 -- -------------------------------------------------------------------------
 
 alter table professors
@@ -20,6 +24,9 @@ alter table university_applications
 alter table lor_requests
   add column if not exists user_id uuid references auth.users(id) on delete cascade;
 
+alter table sop_entries
+  add column if not exists user_id uuid references auth.users(id) on delete cascade;
+
 -- -------------------------------------------------------------------------
 -- 2. Drop the old permissive "allow all" policies (ignore errors if they
 --    don't exist – the policy names match what the original schema created).
@@ -28,6 +35,7 @@ alter table lor_requests
 drop policy if exists "Allow all for professors" on professors;
 drop policy if exists "Allow all for university_applications" on university_applications;
 drop policy if exists "Allow all for lor_requests" on lor_requests;
+drop policy if exists "Allow all for sop_entries" on sop_entries;
 
 -- -------------------------------------------------------------------------
 -- 3. Enable RLS (safe to run even if already enabled)
@@ -36,6 +44,7 @@ drop policy if exists "Allow all for lor_requests" on lor_requests;
 alter table professors enable row level security;
 alter table university_applications enable row level security;
 alter table lor_requests enable row level security;
+alter table sop_entries enable row level security;
 
 -- -------------------------------------------------------------------------
 -- 4. Create per-user policies (drop first so the script is idempotent)
@@ -56,5 +65,11 @@ create policy "Users can manage their own applications"
 drop policy if exists "Users can manage their own lor_requests" on lor_requests;
 create policy "Users can manage their own lor_requests"
   on lor_requests for all
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+drop policy if exists "Users can manage their own sop_entries" on sop_entries;
+create policy "Users can manage their own sop_entries"
+  on sop_entries for all
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);

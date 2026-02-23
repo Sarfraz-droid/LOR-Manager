@@ -1,8 +1,11 @@
--- LoR Manager – Supabase schema
+-- LoR & SOP Manager – Supabase schema
 -- Use this file to create all tables from scratch in a fresh database.
 -- If your database already has these tables (created before authentication
 -- was added), run supabase/migrations/add_user_id.sql instead to add the
--- user_id column and update the RLS policies without losing existing data.
+-- user_id column and update the RLS policies.
+-- NOTE: The migration adds nullable user_id columns; existing rows will have
+-- user_id = NULL and will NOT be visible to any user after RLS is applied.
+-- See the migration file for instructions on re-assigning existing rows.
 
 create table if not exists professors (
   id            text primary key,
@@ -34,10 +37,22 @@ create table if not exists lor_requests (
   last_edited    text
 );
 
+create table if not exists sop_entries (
+  id          text primary key,
+  user_id     uuid not null references auth.users(id) on delete cascade,
+  college     text not null,
+  program     text not null,
+  deadline    text not null,
+  status      text not null default 'Draft',
+  content     text not null default '',
+  last_edited text
+);
+
 -- Enable Row Level Security (RLS) – each user can only access their own data.
 alter table professors enable row level security;
 alter table university_applications enable row level security;
 alter table lor_requests enable row level security;
+alter table sop_entries enable row level security;
 
 create policy "Users can manage their own professors"
   on professors for all
@@ -51,5 +66,10 @@ create policy "Users can manage their own applications"
 
 create policy "Users can manage their own lor_requests"
   on lor_requests for all
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+create policy "Users can manage their own sop_entries"
+  on sop_entries for all
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);

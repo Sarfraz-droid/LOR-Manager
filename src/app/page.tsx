@@ -2,21 +2,25 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useLoRStore } from "@/lib/store";
+import { useSopStore } from "@/lib/sopStore";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { ProfessorCard } from "@/components/dashboard/ProfessorCard";
 import { LoRRequestRow } from "@/components/dashboard/LoRRequestRow";
+import { SopRow } from "@/components/dashboard/SopRow";
 import { Table, TableBody, TableHeader, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { NewProfessorDialog } from "@/components/dashboard/NewProfessorDialog";
 import { NewApplicationDialog } from "@/components/dashboard/NewApplicationDialog";
 import { NewRequestDialog } from "@/components/dashboard/NewRequestDialog";
+import { NewSopDialog } from "@/components/dashboard/NewSopDialog";
 import { AISuggestionTool } from "@/components/dashboard/AISuggestionTool";
 import { LoREditor } from "@/components/dashboard/LoREditor";
+import { SopEditor } from "@/components/dashboard/SopEditor";
+import { GraduationCap, ClipboardList, BookOpen, Sparkles, LayoutDashboard, Clock,AlertTriangle, ScrollText, LogOut } from "lucide-react";
+import { LoRRequest, SopEntry } from "@/lib/types";
 import { AuthForm } from "@/components/auth/AuthForm";
-import { GraduationCap, ClipboardList, BookOpen, Sparkles, LayoutDashboard, Clock, AlertTriangle, LogOut } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { LoRRequest } from "@/lib/types";
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
 
@@ -44,8 +48,19 @@ export default function Home() {
     deleteRequest,
   } = useLoRStore();
 
+  const {
+    sops,
+    isLoading: isSopLoading,
+    addSop,
+    updateSopStatus,
+    updateSopContent,
+    deleteSop,
+  } = useSopStore(user?.id ?? null);
+
   const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState("requests");
   const [editingRequest, setEditingRequest] = useState<LoRRequest | null>(null);
+  const [editingSop, setEditingSop] = useState<SopEntry | null>(null);
   // Track which request IDs have already triggered a reminder this session so
   // the effect never fires toast/markReminded twice for the same request even
   // while the async markReminded call is still in-flight.
@@ -88,6 +103,16 @@ export default function Home() {
     }
   };
 
+  const handleSaveSop = (content: string) => {
+    if (editingSop) {
+      updateSopContent(editingSop.id, content);
+      toast({
+        title: "SOP Saved",
+        description: "Your Statement of Purpose has been saved to your dashboard.",
+      });
+    }
+  };
+
   // Show a full-screen spinner while checking existing auth session
   if (authLoading) {
     return (
@@ -114,7 +139,7 @@ export default function Home() {
     <div className="min-h-screen flex flex-col md:flex-row bg-background font-body">
       <Toaster />
 
-      {isLoading && (
+      {(isLoading || isSopLoading) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
           <div className="flex flex-col items-center gap-3">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-accent border-t-transparent" />
@@ -133,6 +158,14 @@ export default function Home() {
         />
       )}
 
+      {editingSop && (
+        <SopEditor
+          sop={editingSop}
+          onSave={handleSaveSop}
+          onClose={() => setEditingSop(null)}
+        />
+      )}
+
       {/* Sidebar Navigation */}
       <aside className="w-full md:w-64 bg-primary text-primary-foreground p-6 flex flex-col gap-8 shadow-xl">
         <div className="flex items-center gap-3">
@@ -147,10 +180,20 @@ export default function Home() {
 
         <nav className="flex flex-col gap-2">
           <div className="text-[10px] uppercase font-bold text-primary-foreground/50 mb-2">Overview</div>
-          <div className="flex items-center gap-3 px-3 py-2 bg-white/10 rounded-md">
+          <button
+            onClick={() => setActiveTab("requests")}
+            className={`flex items-center gap-3 px-3 py-2 rounded-md w-full text-left transition-colors ${activeTab === "requests" ? "bg-white/10" : "hover:bg-white/5"}`}
+          >
             <LayoutDashboard className="h-4 w-4" />
             <span className="text-sm font-medium">Dashboard</span>
-          </div>
+          </button>
+          <button
+            onClick={() => setActiveTab("sop")}
+            className={`flex items-center gap-3 px-3 py-2 rounded-md w-full text-left transition-colors ${activeTab === "sop" ? "bg-white/10" : "hover:bg-white/5"}`}
+          >
+            <ScrollText className="h-4 w-4" />
+            <span className="text-sm font-medium">SOP Manager</span>
+          </button>
         </nav>
 
         <div className="mt-auto flex flex-col gap-3">
@@ -183,17 +226,20 @@ export default function Home() {
         <header className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
             <h2 className="text-4xl font-headline font-bold text-primary">Academic Portfolio</h2>
-            <p className="text-muted-foreground font-literata">Manage your letters of recommendation and application targets.</p>
+            <p className="text-muted-foreground font-literata">Manage your letters of recommendation, SOPs, and application targets.</p>
           </div>
           <div className="flex gap-2">
             <NewRequestDialog professors={professors} applications={applications} onAdd={addRequest} />
           </div>
         </header>
 
-        <Tabs defaultValue="requests" className="w-full">
-          <TabsList className="bg-muted/50 p-1 h-auto mb-8 grid grid-cols-2 md:grid-cols-4 gap-2">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="bg-muted/50 p-1 h-auto mb-8 grid grid-cols-2 md:grid-cols-5 gap-2">
             <TabsTrigger value="requests" className="data-[state=active]:bg-white py-2">
               <ClipboardList className="h-4 w-4 mr-2" /> Requests
+            </TabsTrigger>
+            <TabsTrigger value="sop" className="data-[state=active]:bg-white py-2">
+              <ScrollText className="h-4 w-4 mr-2" /> SOP Manager
             </TabsTrigger>
             <TabsTrigger value="professors" className="data-[state=active]:bg-white py-2">
               <GraduationCap className="h-4 w-4 mr-2" /> Professors
@@ -254,6 +300,53 @@ export default function Home() {
             </Card>
           </TabsContent>
 
+          <TabsContent value="sop" className="space-y-4 animate-in fade-in duration-300">
+            <Card className="border-none shadow-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                <div>
+                  <CardTitle className="text-2xl">SOP Manager</CardTitle>
+                  <CardDescription>Draft and track your Statements of Purpose for different colleges.</CardDescription>
+                </div>
+                <NewSopDialog onAdd={addSop} />
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-md border border-accent/10">
+                  <Table>
+                    <TableHeader className="bg-muted/30">
+                      <TableRow>
+                        <TableHead>College</TableHead>
+                        <TableHead>Program</TableHead>
+                        <TableHead>Deadline</TableHead>
+                        <TableHead>Action</TableHead>
+                        <TableHead className="text-right">Status</TableHead>
+                        <TableHead></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {sops.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center py-12 text-muted-foreground italic">
+                            No SOPs added yet. Click &quot;New SOP&quot; to get started.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        sops.map(sop => (
+                          <SopRow
+                            key={sop.id}
+                            sop={sop}
+                            onStatusChange={updateSopStatus}
+                            onWrite={setEditingSop}
+                            onDelete={deleteSop}
+                          />
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="professors" className="space-y-6 animate-in fade-in duration-300">
             <div className="flex justify-between items-center">
               <div>
@@ -268,7 +361,7 @@ export default function Home() {
               ))}
               {professors.length === 0 && (
                 <div className="col-span-full py-12 text-center border-2 border-dashed rounded-xl bg-muted/20">
-                  <p className="text-muted-foreground">You haven't added any professor profiles yet.</p>
+                  <p className="text-muted-foreground">You haven&apos;t added any professor profiles yet.</p>
                 </div>
               )}
             </div>
