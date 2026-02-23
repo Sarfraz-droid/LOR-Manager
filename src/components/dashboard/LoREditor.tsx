@@ -142,6 +142,10 @@ export function LoREditor({ request, professor, application, onSave, onClose }: 
         </div>
 
         <div className="flex items-center gap-2">
+          <span className="hidden sm:flex items-center gap-3 text-[10px] text-muted-foreground uppercase font-bold tracking-widest border-r pr-3 mr-1">
+            <span>{wordCount} words</span>
+            <span>{charCount} chars</span>
+          </span>
           {saveStatus === "saving" && (
             <span className="flex items-center gap-1 text-xs text-muted-foreground" aria-live="polite">
               <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
