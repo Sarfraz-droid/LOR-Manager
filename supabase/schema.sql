@@ -3,6 +3,7 @@
 
 create table if not exists professors (
   id            text primary key,
+  user_id       uuid not null references auth.users(id) on delete cascade,
   name          text not null,
   email         text not null,
   expertise     text not null,
@@ -11,6 +12,7 @@ create table if not exists professors (
 
 create table if not exists university_applications (
   id            text primary key,
+  user_id       uuid not null references auth.users(id) on delete cascade,
   university    text not null,
   program       text not null,
   deadline      text not null,
@@ -19,6 +21,7 @@ create table if not exists university_applications (
 
 create table if not exists lor_requests (
   id             text primary key,
+  user_id        uuid not null references auth.users(id) on delete cascade,
   professor_id   text not null references professors(id) on delete cascade,
   application_id text not null references university_applications(id) on delete cascade,
   status         text not null default 'Requested',
@@ -28,17 +31,22 @@ create table if not exists lor_requests (
   last_edited    text
 );
 
--- Enable Row Level Security (RLS) – allow all operations for now.
--- Replace with proper policies once authentication is set up.
+-- Enable Row Level Security (RLS) – each user can only access their own data.
 alter table professors enable row level security;
 alter table university_applications enable row level security;
 alter table lor_requests enable row level security;
 
-create policy "Allow all for professors"
-  on professors for all using (true) with check (true);
+create policy "Users can manage their own professors"
+  on professors for all
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
 
-create policy "Allow all for university_applications"
-  on university_applications for all using (true) with check (true);
+create policy "Users can manage their own applications"
+  on university_applications for all
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
 
-create policy "Allow all for lor_requests"
-  on lor_requests for all using (true) with check (true);
+create policy "Users can manage their own lor_requests"
+  on lor_requests for all
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
