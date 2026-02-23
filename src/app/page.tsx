@@ -31,6 +31,7 @@ export default function Home() {
     isLoading,
     signIn,
     signUp,
+    signInWithGoogle,
     signOut,
     addProfessor, 
     addApplication, 
@@ -104,7 +105,7 @@ export default function Home() {
     return (
       <>
         <Toaster />
-        <AuthForm onSignIn={signIn} onSignUp={signUp} />
+        <AuthForm onSignIn={signIn} onSignUp={signUp} onSignInWithGoogle={signInWithGoogle} />
       </>
     );
   }

@@ -134,6 +134,14 @@ export function useLoRStore() {
     return error ? error.message : null;
   }, []);
 
+  const signInWithGoogle = useCallback(async (): Promise<string | null> => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: window.location.origin },
+    });
+    return error ? error.message : null;
+  }, []);
+
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
   }, []);
@@ -257,6 +265,7 @@ export function useLoRStore() {
     isLoading,
     signIn,
     signUp,
+    signInWithGoogle,
     signOut,
     addProfessor,
     addApplication,
