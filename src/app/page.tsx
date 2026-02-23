@@ -49,6 +49,7 @@ export default function Home() {
   } = useSopStore();
 
   const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState("requests");
   const [editingRequest, setEditingRequest] = useState<LoRRequest | null>(null);
   const [editingSop, setEditingSop] = useState<SopEntry | null>(null);
   // Track which request IDs have already triggered a reminder this session so
@@ -148,10 +149,20 @@ export default function Home() {
 
         <nav className="flex flex-col gap-2">
           <div className="text-[10px] uppercase font-bold text-primary-foreground/50 mb-2">Overview</div>
-          <div className="flex items-center gap-3 px-3 py-2 bg-white/10 rounded-md">
+          <button
+            onClick={() => setActiveTab("requests")}
+            className={`flex items-center gap-3 px-3 py-2 rounded-md w-full text-left transition-colors ${activeTab === "requests" ? "bg-white/10" : "hover:bg-white/5"}`}
+          >
             <LayoutDashboard className="h-4 w-4" />
             <span className="text-sm font-medium">Dashboard</span>
-          </div>
+          </button>
+          <button
+            onClick={() => setActiveTab("sop")}
+            className={`flex items-center gap-3 px-3 py-2 rounded-md w-full text-left transition-colors ${activeTab === "sop" ? "bg-white/10" : "hover:bg-white/5"}`}
+          >
+            <ScrollText className="h-4 w-4" />
+            <span className="text-sm font-medium">SOP Manager</span>
+          </button>
         </nav>
 
         <div className="mt-auto p-4 bg-accent/20 rounded-xl border border-accent/30">
@@ -176,7 +187,7 @@ export default function Home() {
           </div>
         </header>
 
-        <Tabs defaultValue="requests" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="bg-muted/50 p-1 h-auto mb-8 grid grid-cols-2 md:grid-cols-5 gap-2">
             <TabsTrigger value="requests" className="data-[state=active]:bg-white py-2">
               <ClipboardList className="h-4 w-4 mr-2" /> Requests
