@@ -101,7 +101,7 @@ export function useLoRStore() {
   // -------------------------------------------------------------------------
   // Mutations
   // -------------------------------------------------------------------------
-  const addProfessor = async (prof: Professor) => {
+  const addProfessor = useCallback(async (prof: Professor) => {
     const { error } = await supabase.from("professors").insert({
       id: prof.id,
       name: prof.name,
@@ -111,9 +111,9 @@ export function useLoRStore() {
     });
     if (!error) setProfessors((prev) => [...prev, prof]);
     else console.error("addProfessor:", error.message);
-  };
+  }, []);
 
-  const addApplication = async (app: UniversityApplication) => {
+  const addApplication = useCallback(async (app: UniversityApplication) => {
     const { error } = await supabase.from("university_applications").insert({
       id: app.id,
       university: app.university,
@@ -123,9 +123,9 @@ export function useLoRStore() {
     });
     if (!error) setApplications((prev) => [...prev, app]);
     else console.error("addApplication:", error.message);
-  };
+  }, []);
 
-  const addRequest = async (req: LoRRequest) => {
+  const addRequest = useCallback(async (req: LoRRequest) => {
     const { error } = await supabase.from("lor_requests").insert({
       id: req.id,
       professor_id: req.professorId,
@@ -137,9 +137,9 @@ export function useLoRStore() {
     });
     if (!error) setRequests((prev) => [...prev, req]);
     else console.error("addRequest:", error.message);
-  };
+  }, []);
 
-  const updateRequestStatus = async (id: string, status: LoRRequest["status"]) => {
+  const updateRequestStatus = useCallback(async (id: string, status: LoRRequest["status"]) => {
     const { error } = await supabase
       .from("lor_requests")
       .update({ status })
@@ -147,9 +147,9 @@ export function useLoRStore() {
     if (!error)
       setRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)));
     else console.error("updateRequestStatus:", error.message);
-  };
+  }, []);
 
-  const updateRequestContent = async (id: string, content: string) => {
+  const updateRequestContent = useCallback(async (id: string, content: string) => {
     const lastEdited = new Date().toISOString();
     const { error } = await supabase
       .from("lor_requests")
@@ -160,9 +160,9 @@ export function useLoRStore() {
         prev.map((r) => (r.id === id ? { ...r, content, lastEdited } : r))
       );
     else console.error("updateRequestContent:", error.message);
-  };
+  }, []);
 
-  const markReminded = async (id: string) => {
+  const markReminded = useCallback(async (id: string) => {
     const { error } = await supabase
       .from("lor_requests")
       .update({ reminder_sent: true })
@@ -172,18 +172,18 @@ export function useLoRStore() {
         prev.map((r) => (r.id === id ? { ...r, reminderSent: true } : r))
       );
     else console.error("markReminded:", error.message);
-  };
+  }, []);
 
-  const deleteProfessor = async (id: string) => {
+  const deleteProfessor = useCallback(async (id: string) => {
     const { error } = await supabase.from("professors").delete().eq("id", id);
     if (!error) {
       setProfessors((prev) => prev.filter((p) => p.id !== id));
       // Cascade deletes lor_requests in DB; mirror locally
       setRequests((prev) => prev.filter((r) => r.professorId !== id));
     } else console.error("deleteProfessor:", error.message);
-  };
+  }, []);
 
-  const deleteApplication = async (id: string) => {
+  const deleteApplication = useCallback(async (id: string) => {
     const { error } = await supabase
       .from("university_applications")
       .delete()
@@ -193,7 +193,14 @@ export function useLoRStore() {
       // Cascade deletes lor_requests in DB; mirror locally
       setRequests((prev) => prev.filter((r) => r.applicationId !== id));
     } else console.error("deleteApplication:", error.message);
-  };
+  }, []);
+
+  const deleteRequest = useCallback(async (id: string) => {
+    const { error } = await supabase.from("lor_requests").delete().eq("id", id);
+    if (!error)
+      setRequests((prev) => prev.filter((r) => r.id !== id));
+    else console.error("deleteRequest:", error.message);
+  }, []);
 
   return {
     professors,
@@ -208,5 +215,6 @@ export function useLoRStore() {
     markReminded,
     deleteProfessor,
     deleteApplication,
+    deleteRequest,
   };
 }

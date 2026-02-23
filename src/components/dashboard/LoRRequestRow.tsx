@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
-import { Calendar, Building2, User, PenTool } from "lucide-react";
+import { Calendar, Building2, User, PenTool, Trash2 } from "lucide-react";
 
 interface LoRRequestRowProps {
   request: LoRRequest;
@@ -12,9 +12,10 @@ interface LoRRequestRowProps {
   application?: UniversityApplication;
   onStatusChange: (id: string, status: LoRStatus) => void;
   onWrite: (request: LoRRequest) => void;
+  onDelete: (id: string) => void;
 }
 
-export function LoRRequestRow({ request, professor, application, onStatusChange, onWrite }: LoRRequestRowProps) {
+export function LoRRequestRow({ request, professor, application, onStatusChange, onWrite, onDelete }: LoRRequestRowProps) {
   const isUrgent = new Date(request.deadline).getTime() - new Date().getTime() < 1000 * 60 * 60 * 24 * 7;
 
   return (
@@ -86,6 +87,17 @@ export function LoRRequestRow({ request, professor, application, onStatusChange,
         >
           {request.status}
         </Badge>
+      </TableCell>
+      <TableCell>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => onDelete(request.id)}
+          className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
+          aria-label="Delete request"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
       </TableCell>
     </TableRow>
   );

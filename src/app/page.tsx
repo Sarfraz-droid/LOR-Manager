@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLoRStore } from "@/lib/store";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -31,18 +31,23 @@ export default function Home() {
     updateRequestContent,
     markReminded,
     deleteProfessor,
-    deleteApplication
+    deleteApplication,
+    deleteRequest,
   } = useLoRStore();
 
   const { toast } = useToast();
   const [editingRequest, setEditingRequest] = useState<LoRRequest | null>(null);
+  // Track which request IDs have already triggered a reminder this session so
+  // the effect never fires toast/markReminded twice for the same request even
+  // while the async markReminded call is still in-flight.
+  const remindedRef = useRef<Set<string>>(new Set());
 
   const pendingCount = requests.filter(r => r.status !== "Submitted").length;
 
   // Automated reminders for the student
   useEffect(() => {
     const urgentRequests = requests.filter(req => {
-      if (req.status === "Submitted" || req.reminderSent) return false;
+      if (req.status === "Submitted" || req.reminderSent || remindedRef.current.has(req.id)) return false;
       const deadlineDate = new Date(req.deadline);
       const today = new Date();
       const diffTime = deadlineDate.getTime() - today.getTime();
@@ -52,6 +57,7 @@ export default function Home() {
 
     if (urgentRequests.length > 0) {
       urgentRequests.forEach(req => {
+        remindedRef.current.add(req.id);
         const app = applications.find(a => a.id === req.applicationId);
         toast({
           title: "Personal Deadline Reminder",
@@ -172,12 +178,13 @@ export default function Home() {
                         <TableHead>Deadline</TableHead>
                         <TableHead>Action</TableHead>
                         <TableHead className="text-right">Status</TableHead>
+                        <TableHead></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {requests.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={5} className="text-center py-12 text-muted-foreground italic">
+                          <TableCell colSpan={6} className="text-center py-12 text-muted-foreground italic">
                             No requests logged yet. Start by adding a professor and an application.
                           </TableCell>
                         </TableRow>
@@ -188,6 +195,7 @@ export default function Home() {
                             request={req} 
                             onStatusChange={updateRequestStatus}
                             onWrite={setEditingRequest}
+                            onDelete={deleteRequest}
                             professor={professors.find(p => p.id === req.professorId)}
                             application={applications.find(a => a.id === req.applicationId)}
                           />
