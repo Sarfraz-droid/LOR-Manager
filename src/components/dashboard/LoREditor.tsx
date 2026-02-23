@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { LoRRequest, Professor, UniversityApplication } from "@/lib/types";
-import { ArrowLeft, Save, Download, Sparkles, Loader2, FileText, CheckCircle } from "lucide-react";
+import { ArrowLeft, Save, Download, Sparkles, Loader2, FileText, CheckCircle, Share2 } from "lucide-react";
 import { generateLoRDraft } from "@/ai/flows/generate-lor-draft";
 import { Document, Packer, Paragraph, TextRun } from "docx";
 import { saveAs } from "file-saver";
@@ -59,8 +59,10 @@ export function LoREditor({ request, professor, application, onSave, onClose }: 
   });
   const [isDrafting, setIsDrafting] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [shareStatus, setShareStatus] = useState<"idle" | "copied">("idle");
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const shareTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isFirstRender = useRef(true);
 
   useEffect(() => {
@@ -70,8 +72,8 @@ export function LoREditor({ request, professor, application, onSave, onClose }: 
     }
     if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
     if (idleTimer.current) clearTimeout(idleTimer.current);
-    setSaveStatus("saving");
     autosaveTimer.current = setTimeout(() => {
+      setSaveStatus("saving");
       onSave(content);
       setSaveStatus("saved");
       idleTimer.current = setTimeout(() => setSaveStatus("idle"), 2000);
@@ -82,6 +84,19 @@ export function LoREditor({ request, professor, application, onSave, onClose }: 
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [content]);
+
+  const handleShareToDocs = async () => {
+    const plainText = stripHtml(content);
+    try {
+      await navigator.clipboard.writeText(plainText);
+    } catch {
+      // clipboard unavailable; user can still paste manually from the new Doc
+    }
+    window.open("https://docs.new", "_blank", "noopener,noreferrer");
+    setShareStatus("copied");
+    if (shareTimer.current) clearTimeout(shareTimer.current);
+    shareTimer.current = setTimeout(() => setShareStatus("idle"), 3000);
+  };
 
   const handleDownload = async () => {
     const plainText = stripHtml(content);
@@ -171,6 +186,16 @@ export function LoREditor({ request, professor, application, onSave, onClose }: 
           <Button variant="secondary" size="sm" onClick={() => onSave(content)} className="h-8">
             <Save className="h-3.5 w-3.5 mr-2" />
             Save
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleShareToDocs}
+            className="h-8 border-blue-500 text-blue-600 hover:bg-blue-50"
+            title="Copy content to clipboard and open a new Google Doc"
+          >
+            <Share2 className="h-3.5 w-3.5 mr-2" />
+            {shareStatus === "copied" ? "Copied!" : "Google Docs"}
           </Button>
           <Button variant="default" size="sm" onClick={handleDownload} className="bg-primary h-8">
             <Download className="h-3.5 w-3.5 mr-2" />
