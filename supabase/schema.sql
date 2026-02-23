@@ -1,5 +1,8 @@
 -- LoR Manager – Supabase schema
--- Run this in the Supabase SQL editor to create the required tables.
+-- Use this file to create all tables from scratch in a fresh database.
+-- If your database already has these tables (created before authentication
+-- was added), run supabase/migrations/add_user_id.sql instead to add the
+-- user_id column and update the RLS policies without losing existing data.
 
 create table if not exists professors (
   id            text primary key,
