@@ -1,9 +1,14 @@
-import type {Metadata} from 'next';
+import type {Metadata, Viewport} from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
   title: 'LoR Tracker Pro - Manage Your Letters of Recommendation',
   description: 'A professional platform for university students to track and organize Letters of Recommendation from professors.',
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
 };
 
 export default function RootLayout({

@@ -16,7 +16,7 @@ import { NewSopDialog } from "@/components/dashboard/NewSopDialog";
 import { AISuggestionTool } from "@/components/dashboard/AISuggestionTool";
 import { LoREditor } from "@/components/dashboard/LoREditor";
 import { SopEditor } from "@/components/dashboard/SopEditor";
-import { GraduationCap, ClipboardList, BookOpen, Sparkles, LayoutDashboard, Clock,AlertTriangle, ScrollText, LogOut } from "lucide-react";
+import { GraduationCap, ClipboardList, BookOpen, Sparkles, LayoutDashboard, Clock,AlertTriangle, ScrollText, LogOut, Menu, X } from "lucide-react";
 import { LoRRequest, SopEntry } from "@/lib/types";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +25,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
 import { useGeminiKey } from "@/hooks/use-gemini-key";
 import { GeminiKeyDialog } from "@/components/dashboard/GeminiKeyDialog";
+
+import { cn } from "@/lib/utils";
 
 
 export default function Home() {
@@ -64,6 +66,7 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState("requests");
   const [editingRequest, setEditingRequest] = useState<LoRRequest | null>(null);
   const [editingSop, setEditingSop] = useState<SopEntry | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   // Track which request IDs have already triggered a reminder this session so
   // the effect never fires toast/markReminded twice for the same request even
   // while the async markReminded call is still in-flight.
@@ -139,7 +142,7 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-background font-body">
+    <div className="min-h-screen flex bg-background font-body">
       <Toaster />
 
       {(isLoading || isSopLoading) && (
@@ -171,8 +174,21 @@ export default function Home() {
         />
       )}
 
+      {/* Mobile sidebar backdrop */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/50 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar Navigation */}
-      <aside className="w-full md:w-64 bg-primary text-primary-foreground p-6 flex flex-col gap-8 shadow-xl">
+      <aside className={cn(
+        "fixed inset-y-0 left-0 z-40 w-64 bg-primary text-primary-foreground p-6 flex flex-col gap-8 shadow-xl",
+        "transition-transform duration-300 ease-in-out",
+        "md:relative md:translate-x-0 md:inset-auto md:z-auto",
+        sidebarOpen ? "translate-x-0" : "-translate-x-full"
+      )}>
         <div className="flex items-center gap-3">
           <div className="bg-accent p-2 rounded-lg">
             <BookOpen className="h-6 w-6 text-accent-foreground" />
@@ -181,19 +197,26 @@ export default function Home() {
             <h1 className="text-xl font-headline font-bold leading-none">LoR Tracker</h1>
             <span className="text-[10px] uppercase tracking-widest font-bold text-accent">Professional Edition</span>
           </div>
+          <button
+            className="ml-auto md:hidden text-primary-foreground/70 hover:text-primary-foreground"
+            onClick={() => setSidebarOpen(false)}
+            aria-label="Close menu"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
 
         <nav className="flex flex-col gap-2">
           <div className="text-[10px] uppercase font-bold text-primary-foreground/50 mb-2">Overview</div>
           <button
-            onClick={() => setActiveTab("requests")}
+            onClick={() => { setActiveTab("requests"); setSidebarOpen(false); }}
             className={`flex items-center gap-3 px-3 py-2 rounded-md w-full text-left transition-colors ${activeTab === "requests" ? "bg-white/10" : "hover:bg-white/5"}`}
           >
             <LayoutDashboard className="h-4 w-4" />
             <span className="text-sm font-medium">Dashboard</span>
           </button>
           <button
-            onClick={() => setActiveTab("sop")}
+            onClick={() => { setActiveTab("sop"); setSidebarOpen(false); }}
             className={`flex items-center gap-3 px-3 py-2 rounded-md w-full text-left transition-colors ${activeTab === "sop" ? "bg-white/10" : "hover:bg-white/5"}`}
           >
             <ScrollText className="h-4 w-4" />
@@ -228,33 +251,47 @@ export default function Home() {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 p-4 md:p-8 overflow-y-auto">
-        <header className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div>
-            <h2 className="text-4xl font-headline font-bold text-primary">Academic Portfolio</h2>
-            <p className="text-muted-foreground font-literata">Manage your letters of recommendation, SOPs, and application targets.</p>
+      <main className="flex-1 p-4 md:p-8 overflow-y-auto min-w-0">
+        <header className="mb-8">
+          {/* Mobile top bar */}
+          <div className="flex items-center gap-3 mb-4 md:hidden">
+            <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)} aria-label="Open menu">
+              <Menu className="h-6 w-6" />
+            </Button>
+            <div className="flex items-center gap-2">
+              <div className="bg-primary p-1.5 rounded-md">
+                <BookOpen className="h-4 w-4 text-primary-foreground" />
+              </div>
+              <span className="text-lg font-headline font-bold text-primary">LoR Tracker</span>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <NewRequestDialog professors={professors} applications={applications} onAdd={addRequest} />
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div>
+              <h2 className="text-2xl md:text-4xl font-headline font-bold text-primary">Academic Portfolio</h2>
+              <p className="text-muted-foreground font-literata text-sm md:text-base">Manage your letters of recommendation, SOPs, and application targets.</p>
+            </div>
+            <div className="flex gap-2">
+              <NewRequestDialog professors={professors} applications={applications} onAdd={addRequest} />
+            </div>
           </div>
         </header>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="bg-muted/50 p-1 h-auto mb-8 grid grid-cols-2 md:grid-cols-5 gap-2">
-            <TabsTrigger value="requests" className="data-[state=active]:bg-white py-2">
-              <ClipboardList className="h-4 w-4 mr-2" /> Requests
+          <TabsList className="bg-muted/50 p-1 h-auto mb-8 grid grid-cols-3 md:grid-cols-5 gap-1">
+            <TabsTrigger value="requests" className="data-[state=active]:bg-white py-2 text-xs sm:text-sm">
+              <ClipboardList className="h-4 w-4 sm:mr-2 shrink-0" /><span className="hidden sm:inline">Requests</span>
             </TabsTrigger>
-            <TabsTrigger value="sop" className="data-[state=active]:bg-white py-2">
-              <ScrollText className="h-4 w-4 mr-2" /> SOP Manager
+            <TabsTrigger value="sop" className="data-[state=active]:bg-white py-2 text-xs sm:text-sm">
+              <ScrollText className="h-4 w-4 sm:mr-2 shrink-0" /><span className="hidden sm:inline">SOP Manager</span>
             </TabsTrigger>
-            <TabsTrigger value="professors" className="data-[state=active]:bg-white py-2">
-              <GraduationCap className="h-4 w-4 mr-2" /> Professors
+            <TabsTrigger value="professors" className="data-[state=active]:bg-white py-2 text-xs sm:text-sm">
+              <GraduationCap className="h-4 w-4 sm:mr-2 shrink-0" /><span className="hidden sm:inline">Professors</span>
             </TabsTrigger>
-            <TabsTrigger value="applications" className="data-[state=active]:bg-white py-2">
-              <BookOpen className="h-4 w-4 mr-2" /> Applications
+            <TabsTrigger value="applications" className="data-[state=active]:bg-white py-2 text-xs sm:text-sm">
+              <BookOpen className="h-4 w-4 sm:mr-2 shrink-0" /><span className="hidden sm:inline">Applications</span>
             </TabsTrigger>
-            <TabsTrigger value="ai" className="data-[state=active]:bg-white py-2">
-              <Sparkles className="h-4 w-4 mr-2" /> AI Suggestion
+            <TabsTrigger value="ai" className="data-[state=active]:bg-white py-2 text-xs sm:text-sm">
+              <Sparkles className="h-4 w-4 sm:mr-2 shrink-0" /><span className="hidden sm:inline">AI Suggestion</span>
             </TabsTrigger>
           </TabsList>
 
@@ -267,7 +304,7 @@ export default function Home() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="rounded-md border border-accent/10">
+                <div className="rounded-md border border-accent/10 overflow-x-auto">
                   <Table>
                     <TableHeader className="bg-muted/30">
                       <TableRow>
@@ -316,7 +353,7 @@ export default function Home() {
                 <NewSopDialog onAdd={addSop} />
               </CardHeader>
               <CardContent>
-                <div className="rounded-md border border-accent/10">
+                <div className="rounded-md border border-accent/10 overflow-x-auto">
                   <Table>
                     <TableHeader className="bg-muted/30">
                       <TableRow>
