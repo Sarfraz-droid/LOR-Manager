@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useLoRStore } from "@/lib/store";
 import { useSopStore } from "@/lib/sopStore";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -16,7 +16,7 @@ import { NewSopDialog } from "@/components/dashboard/NewSopDialog";
 import { AISuggestionTool } from "@/components/dashboard/AISuggestionTool";
 import { LoREditor } from "@/components/dashboard/LoREditor";
 import { SopEditor } from "@/components/dashboard/SopEditor";
-import { GraduationCap, ClipboardList, BookOpen, Sparkles, LayoutDashboard, Clock,AlertTriangle, ScrollText, LogOut, Menu, X } from "lucide-react";
+import { GraduationCap, ClipboardList, BookOpen, Sparkles, LayoutDashboard, Clock,AlertTriangle, ScrollText, LogOut, Menu, X, Filter } from "lucide-react";
 import { LoRRequest, SopEntry } from "@/lib/types";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +27,7 @@ import { useGeminiKey } from "@/hooks/use-gemini-key";
 import { GeminiKeyDialog } from "@/components/dashboard/GeminiKeyDialog";
 
 import { cn } from "@/lib/utils";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 
 export default function Home() {
@@ -67,6 +68,14 @@ export default function Home() {
   const [editingRequest, setEditingRequest] = useState<LoRRequest | null>(null);
   const [editingSop, setEditingSop] = useState<SopEntry | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [filterUniversity, setFilterUniversity] = useState<string>("all");
+  const [filterProfessor, setFilterProfessor] = useState<string>("all");
+  const filteredRequests = useMemo(() => requests.filter(req => {
+    const app = applications.find(a => a.id === req.applicationId);
+    const uniMatch = filterUniversity === "all" || app?.university === filterUniversity;
+    const profMatch = filterProfessor === "all" || req.professorId === filterProfessor;
+    return uniMatch && profMatch;
+  }), [requests, applications, filterUniversity, filterProfessor]);
   // Track which request IDs have already triggered a reminder this session so
   // the effect never fires toast/markReminded twice for the same request even
   // while the async markReminded call is still in-flight.
@@ -297,10 +306,48 @@ export default function Home() {
 
           <TabsContent value="requests" className="space-y-4 animate-in fade-in duration-300">
             <Card className="border-none shadow-sm">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                <div>
-                  <CardTitle className="text-2xl">Letter Tracking</CardTitle>
-                  <CardDescription>Monitor the status of your requested letters.</CardDescription>
+              <CardHeader className="flex flex-col space-y-3">
+                <div className="flex flex-row items-center justify-between space-y-0">
+                  <div>
+                    <CardTitle className="text-2xl">Letter Tracking</CardTitle>
+                    <CardDescription>Monitor the status of your requested letters.</CardDescription>
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Filter className="h-4 w-4" />
+                    <span>Filter by:</span>
+                  </div>
+                  <Select value={filterUniversity} onValueChange={setFilterUniversity}>
+                    <SelectTrigger className="w-48">
+                      <SelectValue placeholder="University" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Universities</SelectItem>
+                      {Array.from(new Set(applications.map(a => a.university))).sort().map(uni => (
+                        <SelectItem key={uni} value={uni}>{uni}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={filterProfessor} onValueChange={setFilterProfessor}>
+                    <SelectTrigger className="w-48">
+                      <SelectValue placeholder="Professor" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Professors</SelectItem>
+                      {professors.map(p => (
+                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {(filterUniversity !== "all" || filterProfessor !== "all") && (
+                    <button
+                      onClick={() => { setFilterUniversity("all"); setFilterProfessor("all"); }}
+                      className="text-xs text-muted-foreground hover:text-foreground underline"
+                    >
+                      Clear filters
+                    </button>
+                  )}
                 </div>
               </CardHeader>
               <CardContent>
@@ -323,11 +370,17 @@ export default function Home() {
                             No requests logged yet. Start by adding a professor and an application.
                           </TableCell>
                         </TableRow>
+                      ) : filteredRequests.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center py-12 text-muted-foreground italic">
+                            No requests match the selected filters.
+                          </TableCell>
+                        </TableRow>
                       ) : (
-                        requests.map(req => (
-                          <LoRRequestRow 
-                            key={req.id} 
-                            request={req} 
+                        filteredRequests.map(req => (
+                          <LoRRequestRow
+                            key={req.id}
+                            request={req}
                             onStatusChange={updateRequestStatus}
                             onWrite={setEditingRequest}
                             onDelete={deleteRequest}
