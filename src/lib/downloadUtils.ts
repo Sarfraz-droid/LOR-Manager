@@ -45,6 +45,36 @@ function getTextRuns(el: Element): TextRun[] {
   return runs;
 }
 
+/**
+ * Walk an element's children, splitting into separate run arrays at each <br> element.
+ * Returns one or more arrays of TextRun – one per visual line within the element.
+ */
+function getRunGroups(el: Element): TextRun[][] {
+  const groups: TextRun[][] = [[]];
+  const walkNode = (node: Node, bold: boolean, italic: boolean): void => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const text = node.textContent ?? "";
+      if (text) groups[groups.length - 1].push({ text, bold, italic });
+    } else if (node.nodeType === Node.ELEMENT_NODE) {
+      const tag = (node as Element).tagName.toLowerCase();
+      if (tag === "br") {
+        groups.push([]);
+      } else {
+        const b = bold || tag === "strong" || tag === "b";
+        const i = italic || tag === "em" || tag === "i";
+        node.childNodes.forEach((child) => walkNode(child, b, i));
+      }
+    }
+  };
+  el.childNodes.forEach((child) => walkNode(child, false, false));
+  // A trailing <br> (e.g. TipTap's ProseMirror-trailingBreak in empty paragraphs)
+  // creates a superfluous empty group at the end; remove it.
+  if (groups.length > 1 && groups[groups.length - 1].length === 0) {
+    groups.pop();
+  }
+  return groups;
+}
+
 function parseHtmlToBlocks(html: string): ContentBlock[] {
   const domDoc = new DOMParser().parseFromString(html, "text/html");
   const blocks: ContentBlock[] = [];
@@ -58,8 +88,10 @@ function parseHtmlToBlocks(html: string): ContentBlock[] {
     } else if (tag === "h3") {
       blocks.push({ type: "h3", runs: getTextRuns(el), indent, ordered: false, listIndex: 0 });
     } else if (tag === "p") {
-      const runs = getTextRuns(el);
-      if (runs.some((r) => r.text.trim())) {
+      // Split on <br> elements (Shift+Enter in TipTap) and preserve empty
+      // paragraphs so that blank lines entered with Enter are kept in the PDF.
+      const runGroups = getRunGroups(el);
+      for (const runs of runGroups) {
         blocks.push({ type: "paragraph", runs, indent, ordered: false, listIndex: 0 });
       }
     } else if (tag === "blockquote") {
