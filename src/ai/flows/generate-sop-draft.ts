@@ -3,7 +3,7 @@
  * @fileOverview A Genkit flow for drafting Statements of Purpose.
  */
 
-import { ai } from '@/ai/genkit';
+import { ai, createAI } from '@/ai/genkit';
 import { z } from 'genkit';
 
 const GenerateSopDraftInputSchema = z.object({
@@ -20,21 +20,14 @@ const GenerateSopDraftOutputSchema = z.object({
 });
 export type GenerateSopDraftOutput = z.infer<typeof GenerateSopDraftOutputSchema>;
 
-export async function generateSopDraft(input: GenerateSopDraftInput): Promise<GenerateSopDraftOutput> {
-  return generateSopDraftFlow(input);
-}
+function buildSopDraftPrompt(input: GenerateSopDraftInput): string {
+  return `You are an expert academic writing assistant. Your task is to draft a compelling Statement of Purpose (SOP).
 
-const prompt = ai.definePrompt({
-  name: 'generateSopDraftPrompt',
-  input: { schema: GenerateSopDraftInputSchema },
-  output: { schema: GenerateSopDraftOutputSchema },
-  prompt: `You are an expert academic writing assistant. Your task is to draft a compelling Statement of Purpose (SOP).
-
-Target Institution: {{{college}}}
-Program: {{{program}}}
-Student Background: {{{studentBackground}}}
-Key Achievements: {{{achievements}}}
-Career Goals: {{{goals}}}
+Target Institution: ${input.college}
+Program: ${input.program}
+Student Background: ${input.studentBackground}
+Key Achievements: ${input.achievements}
+Career Goals: ${input.goals}
 
 The SOP should:
 1. Open with a compelling hook that introduces the student's passion for the field.
@@ -44,9 +37,20 @@ The SOP should:
 5. Explain why this specific program and institution is the right fit.
 6. Close with a strong concluding statement.
 
-Use a formal, professional tone appropriate for graduate admissions. Return only the text of the SOP.`,
-});
+Use a formal, professional tone appropriate for graduate admissions. Return only the text of the SOP.`;
+}
 
+export async function generateSopDraft(input: GenerateSopDraftInput, geminiApiKey?: string): Promise<GenerateSopDraftOutput> {
+  const aiInstance = geminiApiKey ? createAI(geminiApiKey) : ai;
+  const { output } = await aiInstance.generate({
+    prompt: buildSopDraftPrompt(input),
+    output: { schema: GenerateSopDraftOutputSchema },
+  });
+  if (!output) throw new Error('Failed to generate SOP draft.');
+  return output;
+}
+
+// Kept for Genkit dev server discovery
 const generateSopDraftFlow = ai.defineFlow(
   {
     name: 'generateSopDraftFlow',
@@ -54,8 +58,14 @@ const generateSopDraftFlow = ai.defineFlow(
     outputSchema: GenerateSopDraftOutputSchema,
   },
   async (input) => {
-    const { output } = await prompt(input);
+    const { output } = await ai.generate({
+      prompt: buildSopDraftPrompt(input),
+      output: { schema: GenerateSopDraftOutputSchema },
+    });
     if (!output) throw new Error('Failed to generate SOP draft.');
     return output;
   }
 );
+
+export { generateSopDraftFlow };
+

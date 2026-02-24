@@ -16,6 +16,7 @@ interface LoREditorProps {
   application?: UniversityApplication;
   onSave: (content: string) => void;
   onClose: () => void;
+  geminiKey?: string;
 }
 
 /** Convert plain text (possibly multi-line) to simple HTML paragraphs for Tiptap */
@@ -52,7 +53,7 @@ function stripHtml(html: string): string {
 
 const AUTOSAVE_DELAY = 2000;
 
-export function LoREditor({ request, professor, application, onSave, onClose }: LoREditorProps) {
+export function LoREditor({ request, professor, application, onSave, onClose, geminiKey }: LoREditorProps) {
   const [content, setContent] = useState(() => {
     const raw = request.content || "";
     return textToHtml(raw);
@@ -125,7 +126,7 @@ export function LoREditor({ request, professor, application, onSave, onClose }: 
         studentHistory: "The student has been a top performer in courses and shown great research aptitude.",
         university: application?.university || "[University]",
         program: application?.program || "[Program]",
-      });
+      }, geminiKey || undefined);
       setContent(textToHtml(result.draft));
     } catch (error) {
       console.error(error);
