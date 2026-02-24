@@ -5,3 +5,10 @@ export const ai = genkit({
   plugins: [googleAI()],
   model: 'googleai/gemini-2.5-flash',
 });
+
+export function createAI(apiKey: string) {
+  return genkit({
+    plugins: [googleAI({ apiKey })],
+    model: 'googleai/gemini-2.5-flash',
+  });
+}

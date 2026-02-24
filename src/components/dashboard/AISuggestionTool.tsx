@@ -11,9 +11,10 @@ import { Progress } from "@/components/ui/progress";
 
 interface AISuggestionToolProps {
   professors: Professor[];
+  geminiKey?: string;
 }
 
-export function AISuggestionTool({ professors }: AISuggestionToolProps) {
+export function AISuggestionTool({ professors, geminiKey }: AISuggestionToolProps) {
   const [history, setHistory] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<IntelligentRecommendationSuggestionOutput | null>(null);
@@ -30,7 +31,7 @@ export function AISuggestionTool({ professors }: AISuggestionToolProps) {
           expertise: `${p.expertise}. Taught courses: ${p.courses.join(", ")}`,
           contactInfo: p.email
         })),
-      });
+      }, geminiKey || undefined);
       setResult(response);
     } catch (error) {
       console.error(error);

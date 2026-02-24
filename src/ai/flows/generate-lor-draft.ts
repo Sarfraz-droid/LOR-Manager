@@ -3,7 +3,7 @@
  * @fileOverview A Genkit flow for drafting Letters of Recommendation.
  */
 
-import { ai } from '@/ai/genkit';
+import { ai, createAI } from '@/ai/genkit';
 import { z } from 'genkit';
 
 const GenerateLoRDraftInputSchema = z.object({
@@ -21,20 +21,13 @@ const GenerateLoRDraftOutputSchema = z.object({
 });
 export type GenerateLoRDraftOutput = z.infer<typeof GenerateLoRDraftOutputSchema>;
 
-export async function generateLoRDraft(input: GenerateLoRDraftInput): Promise<GenerateLoRDraftOutput> {
-  return generateLoRDraftFlow(input);
-}
+function buildLoRDraftPrompt(input: GenerateLoRDraftInput): string {
+  return `You are an expert academic writing assistant. Your task is to draft a professional and compelling Letter of Recommendation.
 
-const prompt = ai.definePrompt({
-  name: 'generateLoRDraftPrompt',
-  input: { schema: GenerateLoRDraftInputSchema },
-  output: { schema: GenerateLoRDraftOutputSchema },
-  prompt: `You are an expert academic writing assistant. Your task is to draft a professional and compelling Letter of Recommendation.
-
-Professor: {{{professorName}}} (Expertise: {{{professorExpertise}}})
-Student: {{{studentName}}}
-Student Background: {{{studentHistory}}}
-Target Application: {{{university}}} - {{{program}}}
+Professor: ${input.professorName} (Expertise: ${input.professorExpertise})
+Student: ${input.studentName}
+Student Background: ${input.studentHistory}
+Target Application: ${input.university} - ${input.program}
 
 The letter should:
 1. Be formal and structured (Salutation, Introduction, Academic Assessment, Personal Qualities, Conclusion).
@@ -42,9 +35,20 @@ The letter should:
 3. Use a tone appropriate for high-level academic admissions.
 4. Leave placeholders for specific dates or grades if they aren't provided.
 
-Return only the text of the letter.`,
-});
+Return only the text of the letter.`;
+}
 
+export async function generateLoRDraft(input: GenerateLoRDraftInput, geminiApiKey?: string): Promise<GenerateLoRDraftOutput> {
+  const aiInstance = geminiApiKey ? createAI(geminiApiKey) : ai;
+  const { output } = await aiInstance.generate({
+    prompt: buildLoRDraftPrompt(input),
+    output: { schema: GenerateLoRDraftOutputSchema },
+  });
+  if (!output) throw new Error('Failed to generate draft.');
+  return output;
+}
+
+// Kept for Genkit dev server discovery
 const generateLoRDraftFlow = ai.defineFlow(
   {
     name: 'generateLoRDraftFlow',
@@ -52,8 +56,14 @@ const generateLoRDraftFlow = ai.defineFlow(
     outputSchema: GenerateLoRDraftOutputSchema,
   },
   async (input) => {
-    const { output } = await prompt(input);
+    const { output } = await ai.generate({
+      prompt: buildLoRDraftPrompt(input),
+      output: { schema: GenerateLoRDraftOutputSchema },
+    });
     if (!output) throw new Error('Failed to generate draft.');
     return output;
   }
 );
+
+export { generateLoRDraftFlow };
+

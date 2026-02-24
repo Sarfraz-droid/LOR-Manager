@@ -16,6 +16,7 @@ interface SopEditorProps {
   sop: SopEntry;
   onSave: (content: string) => void;
   onClose: () => void;
+  geminiKey?: string;
 }
 
 /** Convert plain text (possibly multi-line) to simple HTML paragraphs for Tiptap */
@@ -54,7 +55,7 @@ function stripHtml(html: string): string {
 
 const AUTOSAVE_DELAY = 2000;
 
-export function SopEditor({ sop, onSave, onClose }: SopEditorProps) {
+export function SopEditor({ sop, onSave, onClose, geminiKey }: SopEditorProps) {
   const [content, setContent] = useState(() => textToHtml(sop.content || ""));
   const [isDrafting, setIsDrafting] = useState(false);
   const [background, setBackground] = useState("");
@@ -126,7 +127,7 @@ export function SopEditor({ sop, onSave, onClose }: SopEditorProps) {
         studentBackground: background || "Strong academic background in the field.",
         achievements: achievements || "Dean's list, research publications, internship experience.",
         goals: goals || "To contribute to cutting-edge research and pursue an academic/industry career.",
-      });
+      }, geminiKey || undefined);
       setContent(textToHtml(result.draft));
       setShowAiPanel(false);
     } catch (error) {

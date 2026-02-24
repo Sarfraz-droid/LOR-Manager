@@ -23,6 +23,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
+import { useGeminiKey } from "@/hooks/use-gemini-key";
+import { GeminiKeyDialog } from "@/components/dashboard/GeminiKeyDialog";
 
 
 export default function Home() {
@@ -58,6 +60,7 @@ export default function Home() {
   } = useSopStore(user?.id ?? null);
 
   const { toast } = useToast();
+  const { geminiKey, setGeminiKey } = useGeminiKey();
   const [activeTab, setActiveTab] = useState("requests");
   const [editingRequest, setEditingRequest] = useState<LoRRequest | null>(null);
   const [editingSop, setEditingSop] = useState<SopEntry | null>(null);
@@ -155,6 +158,7 @@ export default function Home() {
           application={applications.find(a => a.id === editingRequest.applicationId)}
           onSave={handleSaveLoR}
           onClose={() => setEditingRequest(null)}
+          geminiKey={geminiKey}
         />
       )}
 
@@ -163,6 +167,7 @@ export default function Home() {
           sop={editingSop}
           onSave={handleSaveSop}
           onClose={() => setEditingSop(null)}
+          geminiKey={geminiKey}
         />
       )}
 
@@ -208,10 +213,11 @@ export default function Home() {
 
           <div className="px-1">
             <p className="text-[10px] text-primary-foreground/50 truncate mb-2">{user.email}</p>
+            <GeminiKeyDialog geminiKey={geminiKey} onSave={setGeminiKey} />
             <Button
               variant="outline"
               size="sm"
-              className="w-full text-primary-foreground border-primary-foreground/30 hover:bg-white/10 hover:text-primary-foreground bg-transparent"
+              className="w-full text-primary-foreground border-primary-foreground/30 hover:bg-white/10 hover:text-primary-foreground bg-transparent mt-1"
               onClick={signOut}
             >
               <LogOut className="h-4 w-4 mr-2" />
@@ -413,7 +419,7 @@ export default function Home() {
 
           <TabsContent value="ai" className="animate-in fade-in duration-300">
             <div className="max-w-3xl mx-auto">
-              <AISuggestionTool professors={professors} />
+              <AISuggestionTool professors={professors} geminiKey={geminiKey} />
             </div>
           </TabsContent>
         </Tabs>

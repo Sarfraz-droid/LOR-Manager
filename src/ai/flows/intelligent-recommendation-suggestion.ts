@@ -7,7 +7,7 @@
  * - IntelligentRecommendationSuggestionOutput - The return type for the intelligentRecommendationSuggestion function.
  */
 
-import { ai } from '@/ai/genkit';
+import { ai, createAI } from '@/ai/genkit';
 import { z } from 'genkit';
 
 const ProfessorProfileSchema = z.object({
@@ -33,26 +33,17 @@ const IntelligentRecommendationSuggestionOutputSchema = z.object({
 });
 export type IntelligentRecommendationSuggestionOutput = z.infer<typeof IntelligentRecommendationSuggestionOutputSchema>;
 
-export async function intelligentRecommendationSuggestion(
-  input: IntelligentRecommendationSuggestionInput
-): Promise<IntelligentRecommendationSuggestionOutput> {
-  return intelligentRecommendationSuggestionFlow(input);
-}
-
-const prompt = ai.definePrompt({
-  name: 'intelligentRecommendationSuggestionPrompt',
-  input: { schema: IntelligentRecommendationSuggestionInputSchema },
-  output: { schema: IntelligentRecommendationSuggestionOutputSchema },
-  prompt: `You are an expert academic advisor specializing in matching students with the best professors for Letters of Recommendation. Your goal is to provide the most suitable professor based on the student's academic history and the available professor profiles.
+function buildRecommendationPrompt(input: IntelligentRecommendationSuggestionInput): string {
+  const professorList = input.professorProfiles
+    .map((p) => `  - Professor Name: ${p.name}\n  - Expertise: ${p.expertise}`)
+    .join('\n');
+  return `You are an expert academic advisor specializing in matching students with the best professors for Letters of Recommendation. Your goal is to provide the most suitable professor based on the student's academic history and the available professor profiles.
 
 Student Academic History:
-{{{studentAcademicHistory}}}
+${input.studentAcademicHistory}
 
 Available Professor Profiles:
-{{#each professorProfiles}}
-  - Professor Name: {{{name}}}
-  - Expertise: {{{expertise}}}
-{{/each}}
+${professorList}
 
 Analyze the student's academic background and research interests against the expertise of each professor. Identify the professor who has the strongest alignment with the student's areas of study, courses taken, and research interests.
 
@@ -60,9 +51,23 @@ Provide your suggestion as a JSON object with the following fields:
 - 'suggestedProfessor': The name of the most suitable professor.
 - 'reasoning': A detailed explanation justifying your choice, highlighting specific matches between the student's history and the professor's expertise.
 - 'confidenceScore': A numerical score from 0 to 100, where 100 indicates very high confidence in the recommendation.
-`,
-});
+`;
+}
 
+export async function intelligentRecommendationSuggestion(
+  input: IntelligentRecommendationSuggestionInput,
+  geminiApiKey?: string,
+): Promise<IntelligentRecommendationSuggestionOutput> {
+  const aiInstance = geminiApiKey ? createAI(geminiApiKey) : ai;
+  const { output } = await aiInstance.generate({
+    prompt: buildRecommendationPrompt(input),
+    output: { schema: IntelligentRecommendationSuggestionOutputSchema },
+  });
+  if (!output) throw new Error('Failed to get a recommendation from the AI.');
+  return output;
+}
+
+// Kept for Genkit dev server discovery
 const intelligentRecommendationSuggestionFlow = ai.defineFlow(
   {
     name: 'intelligentRecommendationSuggestionFlow',
@@ -70,10 +75,16 @@ const intelligentRecommendationSuggestionFlow = ai.defineFlow(
     outputSchema: IntelligentRecommendationSuggestionOutputSchema,
   },
   async (input) => {
-    const { output } = await prompt(input);
+    const { output } = await ai.generate({
+      prompt: buildRecommendationPrompt(input),
+      output: { schema: IntelligentRecommendationSuggestionOutputSchema },
+    });
     if (!output) {
       throw new Error('Failed to get a recommendation from the AI.');
     }
     return output;
   }
 );
+
+export { intelligentRecommendationSuggestionFlow };
+
