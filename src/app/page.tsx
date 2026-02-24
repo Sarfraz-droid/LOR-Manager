@@ -19,6 +19,7 @@ import { SopEditor } from "@/components/dashboard/SopEditor";
 import { GraduationCap, ClipboardList, BookOpen, Sparkles, LayoutDashboard, Clock,AlertTriangle, ScrollText, LogOut, Menu, X, Filter } from "lucide-react";
 import { LoRRequest, SopEntry } from "@/lib/types";
 import { AuthForm } from "@/components/auth/AuthForm";
+import { LandingPage } from "@/components/landing/LandingPage";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/toaster";
@@ -65,6 +66,7 @@ export default function Home() {
 
   const { toast } = useToast();
   const { geminiKey, setGeminiKey } = useGeminiKey();
+  const [showAuth, setShowAuth] = useState<"landing" | "signin" | "signup">("landing");
   const [activeTab, setActiveTab] = useState("requests");
   const [editingRequest, setEditingRequest] = useState<LoRRequest | null>(null);
   const [editingSop, setEditingSop] = useState<SopEntry | null>(null);
@@ -143,10 +145,21 @@ export default function Home() {
 
   // Show auth form when not signed in
   if (!user) {
+    if (showAuth === "landing") {
+      return (
+        <>
+          <Toaster />
+          <LandingPage
+            onGetStarted={() => setShowAuth("signup")}
+            onSignIn={() => setShowAuth("signin")}
+          />
+        </>
+      );
+    }
     return (
       <>
         <Toaster />
-        <AuthForm onSignIn={signIn} onSignUp={signUp} onSignInWithGoogle={signInWithGoogle} />
+        <AuthForm onSignIn={signIn} onSignUp={signUp} onSignInWithGoogle={signInWithGoogle} initialMode={showAuth === "signup" ? "signup" : "signin"} />
       </>
     );
   }

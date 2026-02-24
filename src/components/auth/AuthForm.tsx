@@ -11,10 +11,11 @@ type Props = {
   onSignIn: (email: string, password: string) => Promise<string | null>;
   onSignUp: (email: string, password: string) => Promise<string | null>;
   onSignInWithGoogle: () => Promise<string | null>;
+  initialMode?: "signin" | "signup";
 };
 
-export function AuthForm({ onSignIn, onSignUp, onSignInWithGoogle }: Props) {
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+export function AuthForm({ onSignIn, onSignUp, onSignInWithGoogle, initialMode = "signin" }: Props) {
+  const [mode, setMode] = useState<"signin" | "signup">(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
