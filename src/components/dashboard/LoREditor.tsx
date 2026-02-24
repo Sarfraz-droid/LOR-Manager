@@ -107,8 +107,7 @@ export function LoREditor({ request, professor, application, onSave, onClose, on
   };
 
   const handleDownloadPdf = () => {
-    const plainText = stripHtml(content);
-    downloadAsPdf(plainText, `LoR_${application?.university || "Application"}_${professor?.name || "Professor"}.pdf`);
+    downloadAsPdf(content, `LoR_${application?.university || "Application"}_${professor?.name || "Professor"}.pdf`);
   };
 
   const handleDownload = async () => {
