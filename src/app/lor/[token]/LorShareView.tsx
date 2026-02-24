@@ -3,8 +3,10 @@
 import { useEffect, useRef } from "react";
 import { Document, Packer, Paragraph, TextRun } from "docx";
 import { saveAs } from "file-saver";
-import { Download, FileText } from "lucide-react";
+import { Download, FileText, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { downloadAsPdf } from "@/lib/downloadUtils";
 import ReactMarkdown from "react-markdown";
 import DOMPurify from "dompurify";
 
@@ -44,6 +46,11 @@ export function LorShareView({ content, professorName, university, program }: Lo
 
   const isHtml = /<(p|h[1-6]|ul|ol|li|blockquote|br)\b/i.test(content);
 
+  const handleDownloadPdf = () => {
+    const plainText = stripHtml(content);
+    downloadAsPdf(plainText, `LoR_${university}_${professorName}.pdf`);
+  };
+
   const handleDownload = async () => {
     const plainText = stripHtml(content);
     const doc = new Document({
@@ -77,10 +84,25 @@ export function LorShareView({ content, professorName, university, program }: Lo
               <p className="text-xs text-muted-foreground">Authored by {professorName}</p>
             </div>
           </div>
-          <Button onClick={handleDownload} className="flex items-center gap-2">
-            <Download className="h-4 w-4" />
-            Download .docx
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button className="flex items-center gap-2">
+                <Download className="h-4 w-4" />
+                Download PDF
+                <ChevronDown className="h-3 w-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleDownloadPdf}>
+                <Download className="mr-2 h-4 w-4" />
+                Download as PDF
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleDownload}>
+                <FileText className="mr-2 h-4 w-4" />
+                Download as DOCX
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {/* Content */}
@@ -104,7 +126,7 @@ export function LorShareView({ content, professorName, university, program }: Lo
         </div>
 
         <p className="mt-6 text-center text-xs text-muted-foreground">
-          This letter was shared via LoR Tracker Pro. Use the button above to download it as a Word document.
+          This letter was shared via LoR Tracker Pro. Use the button above to download it as a PDF or Word document.
         </p>
       </div>
     </div>

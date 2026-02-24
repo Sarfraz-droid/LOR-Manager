@@ -6,11 +6,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SopEntry } from "@/lib/types";
-import { ArrowLeft, Save, Download, Sparkles, Loader2, FileText, CheckCircle, Share2 } from "lucide-react";
+import { ArrowLeft, Save, Download, Sparkles, Loader2, FileText, CheckCircle, Share2, ChevronDown } from "lucide-react";
 import { generateSopDraft } from "@/ai/flows/generate-sop-draft";
 import { Document, Packer, Paragraph, TextRun } from "docx";
 import { saveAs } from "file-saver";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { TiptapEditor } from "./TiptapEditor";
+import { downloadAsPdf } from "@/lib/downloadUtils";
 
 interface SopEditorProps {
   sop: SopEntry;
@@ -100,6 +102,11 @@ export function SopEditor({ sop, onSave, onClose, geminiKey }: SopEditorProps) {
     setShareStatus("copied");
     if (shareTimer.current) clearTimeout(shareTimer.current);
     shareTimer.current = setTimeout(() => setShareStatus("idle"), 3000);
+  };
+
+  const handleDownloadPdf = () => {
+    const plainText = stripHtml(content);
+    downloadAsPdf(plainText, `SOP_${sop.college}_${sop.program}.pdf`);
   };
 
   const handleDownload = async () => {
@@ -197,10 +204,25 @@ export function SopEditor({ sop, onSave, onClose, geminiKey }: SopEditorProps) {
             <Share2 className="h-3.5 w-3.5 sm:mr-2" />
             <span className="hidden sm:inline">{shareStatus === "copied" ? "Copied!" : "Google Docs"}</span>
           </Button>
-          <Button variant="default" size="sm" onClick={handleDownload} className="bg-primary h-8">
-            <Download className="h-3.5 w-3.5 sm:mr-2" />
-            <span className="hidden sm:inline">Export .docx</span>
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="default" size="sm" className="bg-primary h-8">
+                <Download className="h-3.5 w-3.5 sm:mr-2" />
+                <span className="hidden sm:inline">Export PDF</span>
+                <ChevronDown className="h-3 w-3 ml-1" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleDownloadPdf}>
+                <Download className="mr-2 h-4 w-4" />
+                Download as PDF
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleDownload}>
+                <FileText className="mr-2 h-4 w-4" />
+                Download as DOCX
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </header>
 
