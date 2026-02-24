@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SopEntry } from "@/lib/types";
-import { ArrowLeft, Save, Download, Sparkles, Loader2, FileText } from "lucide-react";
+import { ArrowLeft, Save, Download, Sparkles, Loader2, FileText, CheckCircle, Share2 } from "lucide-react";
 import { generateSopDraft } from "@/ai/flows/generate-sop-draft";
 import { Document, Packer, Paragraph, TextRun } from "docx";
 import { saveAs } from "file-saver";
@@ -52,6 +52,8 @@ function stripHtml(html: string): string {
     .trim();
 }
 
+const AUTOSAVE_DELAY = 2000;
+
 export function SopEditor({ sop, onSave, onClose }: SopEditorProps) {
   const [content, setContent] = useState(() => textToHtml(sop.content || ""));
   const [isDrafting, setIsDrafting] = useState(false);
@@ -59,6 +61,45 @@ export function SopEditor({ sop, onSave, onClose }: SopEditorProps) {
   const [achievements, setAchievements] = useState("");
   const [goals, setGoals] = useState("");
   const [showAiPanel, setShowAiPanel] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [shareStatus, setShareStatus] = useState<"idle" | "copied">("idle");
+  const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const shareTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isFirstRender = useRef(true);
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+    if (idleTimer.current) clearTimeout(idleTimer.current);
+    autosaveTimer.current = setTimeout(() => {
+      setSaveStatus("saving");
+      onSave(content);
+      setSaveStatus("saved");
+      idleTimer.current = setTimeout(() => setSaveStatus("idle"), 2000);
+    }, AUTOSAVE_DELAY);
+    return () => {
+      if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+      if (idleTimer.current) clearTimeout(idleTimer.current);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [content]);
+
+  const handleShareToDocs = async () => {
+    const plainText = stripHtml(content);
+    try {
+      await navigator.clipboard.writeText(plainText);
+    } catch {
+      // clipboard unavailable; user can still paste manually from the new Doc
+    }
+    window.open("https://docs.new", "_blank", "noopener,noreferrer");
+    setShareStatus("copied");
+    if (shareTimer.current) clearTimeout(shareTimer.current);
+    shareTimer.current = setTimeout(() => setShareStatus("idle"), 3000);
+  };
 
   const handleDownload = async () => {
     const plainText = stripHtml(content);
@@ -116,6 +157,22 @@ export function SopEditor({ sop, onSave, onClose }: SopEditorProps) {
         </div>
 
         <div className="flex items-center gap-2">
+          <span className="hidden sm:flex items-center gap-3 text-[10px] text-muted-foreground uppercase font-bold tracking-widest border-r pr-3 mr-1">
+            <span>{wordCount} words</span>
+            <span>{charCount} chars</span>
+          </span>
+          {saveStatus === "saving" && (
+            <span className="flex items-center gap-1 text-xs text-muted-foreground" aria-live="polite">
+              <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
+              Saving…
+            </span>
+          )}
+          {saveStatus === "saved" && (
+            <span className="flex items-center gap-1 text-xs text-green-600" aria-live="polite">
+              <CheckCircle className="h-3 w-3" aria-hidden="true" />
+              Saved
+            </span>
+          )}
           <Button
             variant="outline"
             size="sm"
@@ -128,6 +185,16 @@ export function SopEditor({ sop, onSave, onClose }: SopEditorProps) {
           <Button variant="secondary" size="sm" onClick={() => onSave(content)} className="h-8">
             <Save className="h-3.5 w-3.5 mr-2" />
             Save
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleShareToDocs}
+            className="h-8 border-blue-500 text-blue-600 hover:bg-blue-50"
+            title="Copy content to clipboard and open a new Google Doc"
+          >
+            <Share2 className="h-3.5 w-3.5 mr-2" />
+            {shareStatus === "copied" ? "Copied!" : "Google Docs"}
           </Button>
           <Button variant="default" size="sm" onClick={handleDownload} className="bg-primary h-8">
             <Download className="h-3.5 w-3.5 mr-2" />
