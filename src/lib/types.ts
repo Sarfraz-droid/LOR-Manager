@@ -25,6 +25,7 @@ export type LoRRequest = {
   reminderSent: boolean;
   content?: string;
   lastEdited?: string;
+  shareToken?: string;
 };
 
 export type SopStatus = 'Draft' | 'In Progress' | 'Finalized';

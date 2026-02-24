@@ -48,6 +48,7 @@ export default function Home() {
     updateRequestStatus,
     updateRequestContent,
     markReminded,
+    generateShareToken,
     deleteProfessor,
     deleteApplication,
     deleteRequest,
@@ -170,6 +171,7 @@ export default function Home() {
           application={applications.find(a => a.id === editingRequest.applicationId)}
           onSave={handleSaveLoR}
           onClose={() => setEditingRequest(null)}
+          onShare={generateShareToken}
           geminiKey={geminiKey}
         />
       )}

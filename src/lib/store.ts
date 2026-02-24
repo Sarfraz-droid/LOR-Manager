@@ -33,6 +33,7 @@ type RequestRow = {
   reminder_sent: boolean;
   content: string;
   last_edited: string | null;
+  share_token: string | null;
 };
 
 // ---------------------------------------------------------------------------
@@ -68,6 +69,7 @@ function toRequest(row: RequestRow): LoRRequest {
     reminderSent: row.reminder_sent,
     content: row.content ?? "",
     lastEdited: row.last_edited ?? undefined,
+    shareToken: row.share_token ?? undefined,
   };
 }
 
@@ -254,6 +256,24 @@ export function useLoRStore() {
     } else console.error("deleteApplication:", error.message);
   }, []);
 
+  const generateShareToken = useCallback(async (id: string): Promise<string | null> => {
+    const existing = requests.find((r) => r.id === id)?.shareToken;
+    if (existing) return existing;
+    const token = crypto.randomUUID();
+    const { error } = await supabase
+      .from("lor_requests")
+      .update({ share_token: token })
+      .eq("id", id);
+    if (!error) {
+      setRequests((prev) =>
+        prev.map((r) => (r.id === id ? { ...r, shareToken: token } : r))
+      );
+      return token;
+    }
+    console.error("generateShareToken:", error.message);
+    return null;
+  }, [requests]);
+
   const deleteRequest = useCallback(async (id: string) => {
     const { error } = await supabase.from("lor_requests").delete().eq("id", id);
     if (!error)
@@ -278,6 +298,7 @@ export function useLoRStore() {
     updateRequestStatus,
     updateRequestContent,
     markReminded,
+    generateShareToken,
     deleteProfessor,
     deleteApplication,
     deleteRequest,

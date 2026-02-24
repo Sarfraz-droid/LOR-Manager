@@ -34,7 +34,8 @@ create table if not exists lor_requests (
   deadline       text not null,
   reminder_sent  boolean not null default false,
   content        text not null default '',
-  last_edited    text
+  last_edited    text,
+  share_token    text unique
 );
 
 create table if not exists sop_entries (
@@ -68,6 +69,30 @@ create policy "Users can manage their own lor_requests"
   on lor_requests for all
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
+
+create policy "Public can view shared lor_requests"
+  on lor_requests for select
+  using (share_token is not null);
+
+create policy "Public can view professors in shared lors"
+  on professors for select
+  using (
+    exists (
+      select 1 from lor_requests
+      where lor_requests.professor_id = professors.id
+        and lor_requests.share_token is not null
+    )
+  );
+
+create policy "Public can view applications in shared lors"
+  on university_applications for select
+  using (
+    exists (
+      select 1 from lor_requests
+      where lor_requests.application_id = university_applications.id
+        and lor_requests.share_token is not null
+    )
+  );
 
 create policy "Users can manage their own sop_entries"
   on sop_entries for all
