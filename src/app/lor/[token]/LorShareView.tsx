@@ -47,8 +47,7 @@ export function LorShareView({ content, professorName, university, program }: Lo
   const isHtml = /<(p|h[1-6]|ul|ol|li|blockquote|br)\b/i.test(content);
 
   const handleDownloadPdf = () => {
-    const plainText = stripHtml(content);
-    downloadAsPdf(plainText, `LoR_${university}_${professorName}.pdf`);
+    downloadAsPdf(content, `LoR_${university}_${professorName}.pdf`);
   };
 
   const handleDownload = async () => {

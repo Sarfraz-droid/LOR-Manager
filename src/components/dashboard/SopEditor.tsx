@@ -105,8 +105,7 @@ export function SopEditor({ sop, onSave, onClose, geminiKey }: SopEditorProps) {
   };
 
   const handleDownloadPdf = () => {
-    const plainText = stripHtml(content);
-    downloadAsPdf(plainText, `SOP_${sop.college}_${sop.program}.pdf`);
+    downloadAsPdf(content, `SOP_${sop.college}_${sop.program}.pdf`);
   };
 
   const handleDownload = async () => {
