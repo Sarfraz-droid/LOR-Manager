@@ -164,13 +164,13 @@ export function LoREditor({ request, professor, application, onSave, onClose }: 
           {saveStatus === "saving" && (
             <span className="flex items-center gap-1 text-xs text-muted-foreground" aria-live="polite">
               <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
-              Saving…
+              <span className="hidden sm:inline">Saving…</span>
             </span>
           )}
           {saveStatus === "saved" && (
             <span className="flex items-center gap-1 text-xs text-green-600" aria-live="polite">
               <CheckCircle className="h-3 w-3" aria-hidden="true" />
-              Saved
+              <span className="hidden sm:inline">Saved</span>
             </span>
           )}
           <Button
@@ -180,12 +180,12 @@ export function LoREditor({ request, professor, application, onSave, onClose }: 
             disabled={isDrafting}
             className="border-accent text-accent hover:bg-accent hover:text-white h-8"
           >
-            {isDrafting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5 mr-2" />}
-            AI Draft
+            {isDrafting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5 sm:mr-2" />}
+            <span className="hidden sm:inline">AI Draft</span>
           </Button>
           <Button variant="secondary" size="sm" onClick={() => onSave(content)} className="h-8">
-            <Save className="h-3.5 w-3.5 mr-2" />
-            Save
+            <Save className="h-3.5 w-3.5 sm:mr-2" />
+            <span className="hidden sm:inline">Save</span>
           </Button>
           <Button
             variant="outline"
@@ -194,12 +194,12 @@ export function LoREditor({ request, professor, application, onSave, onClose }: 
             className="h-8 border-blue-500 text-blue-600 hover:bg-blue-50"
             title="Copy content to clipboard and open a new Google Doc"
           >
-            <Share2 className="h-3.5 w-3.5 mr-2" />
-            {shareStatus === "copied" ? "Copied!" : "Google Docs"}
+            <Share2 className="h-3.5 w-3.5 sm:mr-2" />
+            <span className="hidden sm:inline">{shareStatus === "copied" ? "Copied!" : "Google Docs"}</span>
           </Button>
           <Button variant="default" size="sm" onClick={handleDownload} className="bg-primary h-8">
-            <Download className="h-3.5 w-3.5 mr-2" />
-            Export .docx
+            <Download className="h-3.5 w-3.5 sm:mr-2" />
+            <span className="hidden sm:inline">Export .docx</span>
           </Button>
         </div>
       </header>
@@ -208,7 +208,7 @@ export function LoREditor({ request, professor, application, onSave, onClose }: 
       <main className="flex-1 overflow-y-auto bg-[#fafafa]">
         <div className="max-w-4xl mx-auto py-12 px-6">
           <Card className="border-none shadow-xl bg-white min-h-[85vh] flex flex-col">
-            <CardContent className="p-12 md:p-16 flex-1 flex flex-col">
+            <CardContent className="p-6 sm:p-12 md:p-16 flex-1 flex flex-col">
               <div className="mb-10 flex items-center gap-4 text-muted-foreground border-b border-muted/30 pb-6">
                 <div className="p-3 bg-accent/10 rounded-xl">
                   <FileText className="h-8 w-8 text-accent" />
