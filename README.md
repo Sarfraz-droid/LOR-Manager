@@ -1,6 +1,19 @@
-# LoR Manager
+# LoR Tracker Pro
 
-A professional platform for university students to track and organize Letters of Recommendation from professors.
+> **Your Academic Applications, Organized**
+
+LoR Tracker Pro is a professional web application for university students to manage letters of recommendation (LoR), statements of purpose (SOP), and application deadlines — all in one place. Stop juggling spreadsheets and email threads; let LoR Tracker Pro keep your entire application process organized and on time.
+
+## Key Features
+
+| Feature | Description |
+|---|---|
+| 📋 **LoR Request Tracking** | Track every letter of recommendation request in one place — professor, deadline, and status at a glance. |
+| 📝 **SOP Manager** | Draft and manage Statements of Purpose for each college application with a built-in rich-text editor. |
+| ✨ **AI-Powered Drafts** | Generate polished LoR drafts and smart suggestions with Google Gemini AI — tailored to each professor. |
+| 🎓 **Faculty Network** | Keep a structured contact list of professors with their department, email, and areas of expertise. |
+| 🔔 **Deadline Reminders** | Receive automatic in-app alerts when an application deadline is less than a week away. |
+| 📥 **Export to PDF & DOCX** | Download finalized letters and SOPs as professional PDF or Word documents with one click. |
 
 ## Tech Stack
 
