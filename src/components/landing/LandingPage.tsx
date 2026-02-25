@@ -74,12 +74,12 @@ export function LandingPage({ onGetStarted, onSignIn }: Props) {
           </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" onClick={onSignIn}>
-              <LogIn className="h-4 w-4 mr-1.5" />
-              Sign&nbsp;In
+              <LogIn className="h-4 w-4 sm:mr-1.5" />
+              <span className="hidden sm:inline">Sign&nbsp;In</span>
             </Button>
             <Button size="sm" onClick={onGetStarted}>
-              <UserPlus className="h-4 w-4 mr-1.5" />
-              Get&nbsp;Started
+              <UserPlus className="h-4 w-4 sm:mr-1.5" />
+              <span className="hidden sm:inline">Get&nbsp;Started</span>
             </Button>
           </div>
         </div>
