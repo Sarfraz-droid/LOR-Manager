@@ -1,5 +1,6 @@
 import type {Metadata, Viewport} from 'next';
 import './globals.css';
+import { Analytics } from '@vercel/analytics/next';
 
 export const metadata: Metadata = {
   title: 'LoR Tracker Pro - Manage Your Letters of Recommendation',
@@ -23,7 +24,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,200..900;1,7..72,200..900&display=swap" rel="stylesheet" />
       </head>
-      <body className="font-body antialiased selection:bg-accent/30">{children}</body>
+      <body className="font-body antialiased selection:bg-accent/30">{children}<Analytics /></body>
     </html>
   );
 }
