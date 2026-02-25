@@ -87,10 +87,6 @@ export function LandingPage({ onGetStarted, onSignIn }: Props) {
 
       {/* Hero */}
       <section className="py-20 px-4 sm:px-6 text-center max-w-3xl mx-auto overflow-hidden">
-        <div className="inline-flex items-center gap-2 bg-accent/20 text-accent-foreground rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-widest mb-6">
-          <Sparkles className="h-3.5 w-3.5 text-accent" />
-          AI-assisted · Free to use
-        </div>
         <h1 className="text-4xl sm:text-5xl font-headline font-bold text-primary leading-tight mb-4 break-words">
           Your Academic Applications, Organized
         </h1>
