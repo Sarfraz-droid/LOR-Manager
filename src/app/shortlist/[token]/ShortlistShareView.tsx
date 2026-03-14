@@ -1,12 +1,15 @@
 "use client";
 
 import { format } from "date-fns";
-import { BookOpen, Calendar, FileText, GraduationCap, User } from "lucide-react";
+import { BookOpen, Calendar, Eye, FileText, GraduationCap, User } from "lucide-react";
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface SharedShortlistData {
+  token: string;
   shortlist: {
     university: string;
     program: string;
@@ -29,7 +32,7 @@ interface SharedShortlistData {
   }>;
 }
 
-export function ShortlistShareView({ shortlist, sops, lors }: SharedShortlistData) {
+export function ShortlistShareView({ token, shortlist, sops, lors }: SharedShortlistData) {
   return (
     <div className="min-h-screen bg-[#fafafa] px-4 py-12">
       <div className="mx-auto max-w-5xl space-y-6">
@@ -73,12 +76,13 @@ export function ShortlistShareView({ shortlist, sops, lors }: SharedShortlistDat
                     <TableRow>
                       <TableHead>Program</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead className="w-16"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {sops.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={2} className="py-8 text-center text-muted-foreground italic">
+                        <TableCell colSpan={3} className="py-8 text-center text-muted-foreground italic">
                           No SOPs are linked to this shortlist.
                         </TableCell>
                       </TableRow>
@@ -97,6 +101,19 @@ export function ShortlistShareView({ shortlist, sops, lors }: SharedShortlistDat
                             <Badge variant={sop.status === "Finalized" ? "default" : sop.status === "In Progress" ? "secondary" : "outline"}>
                               {sop.status}
                             </Badge>
+                          </TableCell>
+                          <TableCell>
+                             <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                              asChild
+                              aria-label={`View SOP for ${sop.program}`}
+                            >
+                              <Link href={`/shortlist/${token}/sop/${sop.id}`} target="_blank">
+                                <Eye className="h-4 w-4" />
+                              </Link>
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))
@@ -121,12 +138,13 @@ export function ShortlistShareView({ shortlist, sops, lors }: SharedShortlistDat
                     <TableRow>
                       <TableHead>Professor</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead className="w-16"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {lors.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={2} className="py-8 text-center text-muted-foreground italic">
+                        <TableCell colSpan={3} className="py-8 text-center text-muted-foreground italic">
                           No LORs are linked to this shortlist.
                         </TableCell>
                       </TableRow>
@@ -148,6 +166,19 @@ export function ShortlistShareView({ shortlist, sops, lors }: SharedShortlistDat
                             <Badge variant={lor.status === "Submitted" ? "default" : lor.status === "In Progress" ? "secondary" : "outline"}>
                               {lor.status}
                             </Badge>
+                          </TableCell>
+                          <TableCell>
+                             <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                              asChild
+                              aria-label={`View LOR from ${lor.professorName}`}
+                            >
+                              <Link href={`/shortlist/${token}/lor/${lor.id}`} target="_blank">
+                                <Eye className="h-4 w-4" />
+                              </Link>
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))
