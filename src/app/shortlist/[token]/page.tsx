@@ -68,7 +68,7 @@ async function getShortlistData(token: string) {
       deadline: typeof lor.deadline === "string" ? lor.deadline : "",
       status: typeof lor.status === "string" ? lor.status : "Requested",
       content: typeof lor.content === "string" ? lor.content : "",
-      professorName: typeof lor.professor_name === "string" && lor.professor_name ? lor.professor_name : "Professor",
+      professorName: lor.professor_name || "Professor",
     })),
   };
 }
