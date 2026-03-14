@@ -22,7 +22,8 @@ create table if not exists university_applications (
   university    text not null,
   program       text not null,
   deadline      text not null,
-  description   text not null default ''
+  description   text not null default '',
+  share_token   text unique
 );
 
 create table if not exists lor_requests (
@@ -39,14 +40,15 @@ create table if not exists lor_requests (
 );
 
 create table if not exists sop_entries (
-  id          text primary key,
-  user_id     uuid not null references auth.users(id) on delete cascade,
-  college     text not null,
-  program     text not null,
-  deadline    text not null,
-  status      text not null default 'Draft',
-  content     text not null default '',
-  last_edited text
+  id             text primary key,
+  user_id        uuid not null references auth.users(id) on delete cascade,
+  application_id text references university_applications(id) on delete cascade,
+  college        text not null,
+  program        text not null,
+  deadline       text not null,
+  status         text not null default 'Draft',
+  content        text not null default '',
+  last_edited    text
 );
 
 -- Enable Row Level Security (RLS) – each user can only access their own data.
@@ -94,7 +96,44 @@ create policy "Public can view applications in shared lors"
     )
   );
 
+create policy "Public can view shared shortlists"
+  on university_applications for select
+  using (share_token is not null);
+
 create policy "Users can manage their own sop_entries"
   on sop_entries for all
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
+
+create policy "Public can view SOPs in shared shortlists"
+  on sop_entries for select
+  using (
+    exists (
+      select 1 from university_applications
+      where university_applications.id = sop_entries.application_id
+        and university_applications.share_token is not null
+    )
+  );
+
+create policy "Public can view lor_requests in shared shortlists"
+  on lor_requests for select
+  using (
+    exists (
+      select 1 from university_applications
+      where university_applications.id = lor_requests.application_id
+        and university_applications.share_token is not null
+    )
+  );
+
+create policy "Public can view professors in shared shortlists"
+  on professors for select
+  using (
+    exists (
+      select 1
+      from lor_requests
+      join university_applications
+        on university_applications.id = lor_requests.application_id
+      where lor_requests.professor_id = professors.id
+        and university_applications.share_token is not null
+    )
+  );

@@ -12,6 +12,7 @@ export type UniversityApplication = {
   program: string;
   deadline: string;
   description: string;
+  shareToken?: string;
 };
 
 export type LoRStatus = 'Requested' | 'In Progress' | 'Submitted';
@@ -35,6 +36,7 @@ export type SopEntry = {
   college: string;
   program: string;
   deadline: string;
+  applicationId?: string;
   status: SopStatus;
   content?: string;
   lastEdited?: string;

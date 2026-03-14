@@ -16,7 +16,8 @@ import { NewSopDialog } from "@/components/dashboard/NewSopDialog";
 import { AISuggestionTool } from "@/components/dashboard/AISuggestionTool";
 import { LoREditor } from "@/components/dashboard/LoREditor";
 import { SopEditor } from "@/components/dashboard/SopEditor";
-import { GraduationCap, ClipboardList, BookOpen, Sparkles, LayoutDashboard, Clock,AlertTriangle, ScrollText, LogOut, Menu, X, Filter } from "lucide-react";
+import { CollegeDashboardDialog } from "@/components/dashboard/CollegeDashboardDialog";
+import { GraduationCap, ClipboardList, BookOpen, Sparkles, LayoutDashboard, AlertTriangle, ScrollText, LogOut, Menu, X, Filter, Share2, LayoutTemplate } from "lucide-react";
 import { LoRRequest, SopEntry } from "@/lib/types";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { LandingPage } from "@/components/landing/LandingPage";
@@ -50,6 +51,7 @@ export default function Home() {
     updateRequestContent,
     markReminded,
     generateShareToken,
+    generateApplicationShareToken,
     deleteProfessor,
     deleteApplication,
     deleteRequest,
@@ -62,6 +64,7 @@ export default function Home() {
     updateSopStatus,
     updateSopContent,
     deleteSop,
+    removeSopsForApplication,
   } = useSopStore(user?.id ?? null);
 
   const { toast } = useToast();
@@ -75,6 +78,7 @@ export default function Home() {
   const [filterProfessor, setFilterProfessor] = useState<string>("all");
   const [shortlistForRequest, setShortlistForRequest] = useState<string | null>(null);
   const [shortlistForSop, setShortlistForSop] = useState<string | null>(null);
+  const [selectedApplicationId, setSelectedApplicationId] = useState<string | null>(null);
   const filteredRequests = useMemo(() => requests.filter(req => {
     const app = applications.find(a => a.id === req.applicationId);
     const uniMatch = filterUniversity === "all" || app?.university === filterUniversity;
@@ -85,6 +89,23 @@ export default function Home() {
     () => applications.find((application) => application.id === shortlistForSop) ?? null,
     [applications, shortlistForSop]
   );
+  const selectedApplication = useMemo(
+    () => applications.find((application) => application.id === selectedApplicationId) ?? null,
+    [applications, selectedApplicationId]
+  );
+  const connectedSops = useMemo(() => {
+    if (!selectedApplication) return [];
+    return sops.filter((sop) =>
+      sop.applicationId === selectedApplication.id ||
+      (!sop.applicationId &&
+        sop.college === selectedApplication.university &&
+        sop.program === selectedApplication.program)
+    );
+  }, [selectedApplication, sops]);
+  const connectedRequests = useMemo(() => {
+    if (!selectedApplication) return [];
+    return requests.filter((request) => request.applicationId === selectedApplication.id);
+  }, [selectedApplication, requests]);
   // Track which request IDs have already triggered a reminder this session so
   // the effect never fires toast/markReminded twice for the same request even
   // while the async markReminded call is still in-flight.
@@ -134,6 +155,39 @@ export default function Home() {
         title: "SOP Saved",
         description: "Your Statement of Purpose has been saved to your dashboard.",
       });
+    }
+  };
+
+  const handleShareShortlist = async (applicationId: string) => {
+    const token = await generateApplicationShareToken(applicationId);
+    if (!token) {
+      toast({
+        title: "Unable to share shortlist",
+        description: "Please try again in a moment.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/shortlist/${token}`);
+      toast({
+        title: "Public link copied",
+        description: "The college shortlist link is ready to share.",
+      });
+    } catch {
+      toast({
+        title: "Share link created",
+        description: `${window.location.origin}/shortlist/${token}`,
+      });
+    }
+  };
+
+  const handleDeleteApplication = async (applicationId: string) => {
+    await deleteApplication(applicationId);
+    removeSopsForApplication(applicationId);
+    if (selectedApplicationId === applicationId) {
+      setSelectedApplicationId(null);
     }
   };
 
@@ -203,6 +257,35 @@ export default function Home() {
           geminiKey={geminiKey}
         />
       )}
+
+      <CollegeDashboardDialog
+        open={!!selectedApplication}
+        onOpenChange={(open) => {
+          if (!open) setSelectedApplicationId(null);
+        }}
+        application={selectedApplication}
+        sops={connectedSops}
+        requests={connectedRequests}
+        professors={professors}
+        onCreateSop={() => {
+          if (!selectedApplication) return;
+          setSelectedApplicationId(null);
+          setShortlistForSop(selectedApplication.id);
+          setActiveTab("sop");
+        }}
+        onCreateLor={() => {
+          if (!selectedApplication) return;
+          setSelectedApplicationId(null);
+          setShortlistForRequest(selectedApplication.id);
+        }}
+        onOpenSop={(sop) => setEditingSop(sop)}
+        onOpenLor={(request) => setEditingRequest(request)}
+        onShare={() => {
+          if (selectedApplication) {
+            void handleShareShortlist(selectedApplication.id);
+          }
+        }}
+      />
 
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
@@ -498,7 +581,7 @@ export default function Home() {
             <div className="flex justify-between items-center">
               <div>
                 <h3 className="text-2xl font-headline font-bold text-primary">College Shortlists</h3>
-                <p className="text-sm text-muted-foreground font-literata">Shortlist the programs you are targeting, then launch matching SOPs and LORs from the same college card.</p>
+                <p className="text-sm text-muted-foreground font-literata">Open each college dashboard to review the shortlist, its connected SOPs, connected LORs, and its public share link.</p>
               </div>
               <NewApplicationDialog onAdd={addApplication} />
             </div>
@@ -523,6 +606,15 @@ export default function Home() {
                   <CardFooter className="bg-muted/20 py-3 flex flex-wrap justify-between gap-2">
                     <div className="flex flex-wrap gap-2">
                       <Button
+                        variant="default"
+                        size="sm"
+                        className="bg-primary text-primary-foreground"
+                        onClick={() => setSelectedApplicationId(app.id)}
+                      >
+                        <LayoutTemplate className="mr-2 h-4 w-4" />
+                        Open Dashboard
+                      </Button>
+                      <Button
                         variant="outline"
                         size="sm"
                         className="border-accent/30 text-accent hover:bg-accent hover:text-accent-foreground"
@@ -541,9 +633,18 @@ export default function Home() {
                       >
                         Add LOR
                       </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-blue-500 text-blue-600 hover:bg-blue-50"
+                        onClick={() => void handleShareShortlist(app.id)}
+                      >
+                        <Share2 className="mr-2 h-4 w-4" />
+                        Share
+                      </Button>
                     </div>
                     <button 
-                      onClick={() => deleteApplication(app.id)}
+                      onClick={() => void handleDeleteApplication(app.id)}
                       className="text-xs text-destructive hover:underline font-bold"
                     >
                       Remove Shortlist

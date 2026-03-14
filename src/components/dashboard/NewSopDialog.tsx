@@ -24,6 +24,7 @@ export function NewSopDialog({
     college: "",
     program: "",
     deadline: "",
+    applicationId: "",
   });
 
   useEffect(() => {
@@ -33,6 +34,7 @@ export function NewSopDialog({
       college: initialApplication.university,
       program: initialApplication.program,
       deadline: initialApplication.deadline,
+      applicationId: initialApplication.id,
     });
     setOpen(true);
     onInitialApplicationHandled?.();
@@ -45,10 +47,11 @@ export function NewSopDialog({
       college: formData.college,
       program: formData.program,
       deadline: formData.deadline,
+      applicationId: formData.applicationId || undefined,
       status: "Draft",
       content: "",
     });
-    setFormData({ college: "", program: "", deadline: "" });
+    setFormData({ college: "", program: "", deadline: "", applicationId: "" });
     setOpen(false);
   };
 
