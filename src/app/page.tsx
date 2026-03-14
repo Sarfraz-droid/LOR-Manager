@@ -383,7 +383,7 @@ export default function Home() {
                     <TableHeader className="bg-muted/30">
                       <TableRow>
                         <TableHead>Professor</TableHead>
-                         <TableHead>Shortlist</TableHead>
+                        <TableHead>Shortlist</TableHead>
                         <TableHead>Deadline</TableHead>
                         <TableHead>Action</TableHead>
                         <TableHead className="text-right">Status</TableHead>
