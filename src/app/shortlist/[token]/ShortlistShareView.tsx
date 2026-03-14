@@ -1,22 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import { format } from "date-fns";
 import { BookOpen, Calendar, Eye, FileText, GraduationCap, User } from "lucide-react";
-import DOMPurify from "dompurify";
-import ReactMarkdown from "react-markdown";
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface SharedShortlistData {
+  token: string;
   shortlist: {
     university: string;
     program: string;
@@ -39,55 +32,7 @@ interface SharedShortlistData {
   }>;
 }
 
-interface ContentViewDialogProps {
-  open: boolean;
-  onClose: () => void;
-  title: string;
-  subtitle: string;
-  content: string;
-}
-
-function ContentViewDialog({ open, onClose, title, subtitle, content }: ContentViewDialogProps) {
-  const contentRef = useRef<HTMLDivElement>(null);
-  const isHtml = /<(p|div|span|h[1-6]|ul|ol|li|blockquote|br|strong|em|a)\b/i.test(content);
-
-  useEffect(() => {
-    if (open && contentRef.current && isHtml) {
-      contentRef.current.innerHTML = DOMPurify.sanitize(content);
-    }
-  }, [open, content, isHtml]);
-
-  return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <p className="text-sm text-muted-foreground">{subtitle}</p>
-        </DialogHeader>
-        <div className="bg-white rounded-lg border border-muted/20 p-6 min-h-[40vh]">
-          {content ? (
-            isHtml ? (
-              <div ref={contentRef} className="prose prose-slate max-w-none text-foreground" />
-            ) : (
-              <div className="prose prose-slate max-w-none text-foreground">
-                <ReactMarkdown>{content}</ReactMarkdown>
-              </div>
-            )
-          ) : (
-            <p className="text-muted-foreground italic text-center py-12">
-              This document has no content yet.
-            </p>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-export function ShortlistShareView({ shortlist, sops, lors }: SharedShortlistData) {
-  const [selectedSop, setSelectedSop] = useState<SharedShortlistData["sops"][number] | null>(null);
-  const [selectedLor, setSelectedLor] = useState<SharedShortlistData["lors"][number] | null>(null);
-
+export function ShortlistShareView({ token, shortlist, sops, lors }: SharedShortlistData) {
   return (
     <div className="min-h-screen bg-[#fafafa] px-4 py-12">
       <div className="mx-auto max-w-5xl space-y-6">
@@ -158,14 +103,16 @@ export function ShortlistShareView({ shortlist, sops, lors }: SharedShortlistDat
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            <Button
+                             <Button
                               variant="ghost"
                               size="sm"
                               className="h-8 w-8 p-0"
-                              onClick={() => setSelectedSop(sop)}
+                              asChild
                               aria-label={`View SOP for ${sop.program}`}
                             >
-                              <Eye className="h-4 w-4" />
+                              <Link href={`/shortlist/${token}/sop/${sop.id}`} target="_blank">
+                                <Eye className="h-4 w-4" />
+                              </Link>
                             </Button>
                           </TableCell>
                         </TableRow>
@@ -221,14 +168,16 @@ export function ShortlistShareView({ shortlist, sops, lors }: SharedShortlistDat
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            <Button
+                             <Button
                               variant="ghost"
                               size="sm"
                               className="h-8 w-8 p-0"
-                              onClick={() => setSelectedLor(lor)}
+                              asChild
                               aria-label={`View LOR from ${lor.professorName}`}
                             >
-                              <Eye className="h-4 w-4" />
+                              <Link href={`/shortlist/${token}/lor/${lor.id}`} target="_blank">
+                                <Eye className="h-4 w-4" />
+                              </Link>
                             </Button>
                           </TableCell>
                         </TableRow>
@@ -241,26 +190,6 @@ export function ShortlistShareView({ shortlist, sops, lors }: SharedShortlistDat
           </Card>
         </div>
       </div>
-
-      {selectedSop && (
-        <ContentViewDialog
-          open={!!selectedSop}
-          onClose={() => setSelectedSop(null)}
-          title={`Statement of Purpose — ${selectedSop.program}`}
-          subtitle={`Deadline: ${selectedSop.deadline ? format(new Date(selectedSop.deadline), "MMM d, yyyy") : "Unknown"} · Status: ${selectedSop.status}`}
-          content={selectedSop.content}
-        />
-      )}
-
-      {selectedLor && (
-        <ContentViewDialog
-          open={!!selectedLor}
-          onClose={() => setSelectedLor(null)}
-          title={`Letter of Recommendation — ${selectedLor.professorName}`}
-          subtitle={`Deadline: ${selectedLor.deadline ? format(new Date(selectedLor.deadline), "MMM d, yyyy") : "Unknown"} · Status: ${selectedLor.status}`}
-          content={selectedLor.content}
-        />
-      )}
     </div>
   );
 }

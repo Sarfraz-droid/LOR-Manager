@@ -81,5 +81,5 @@ export default async function ShortlistSharePage({ params }: PageProps) {
     notFound();
   }
 
-  return <ShortlistShareView {...data} />;
+  return <ShortlistShareView token={token} {...data} />;
 }
