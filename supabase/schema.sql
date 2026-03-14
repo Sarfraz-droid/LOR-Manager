@@ -57,6 +57,60 @@ alter table university_applications enable row level security;
 alter table lor_requests enable row level security;
 alter table sop_entries enable row level security;
 
+create or replace function public.is_shared_shortlist(application_id_input text)
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (
+    select 1
+    from public.university_applications
+    where id = application_id_input
+      and share_token is not null
+  );
+$$;
+
+create or replace function public.has_shared_lor_for_application(application_id_input text)
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (
+    select 1
+    from public.lor_requests
+    where application_id = application_id_input
+      and share_token is not null
+  );
+$$;
+
+create or replace function public.has_shared_reference_for_professor(professor_id_input text)
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (
+    select 1
+    from public.lor_requests
+    left join public.university_applications
+      on public.university_applications.id = public.lor_requests.application_id
+    where public.lor_requests.professor_id = professor_id_input
+      and (
+        public.lor_requests.share_token is not null
+        or public.university_applications.share_token is not null
+      )
+  );
+$$;
+
+grant execute on function public.is_shared_shortlist(text) to anon, authenticated;
+grant execute on function public.has_shared_lor_for_application(text) to anon, authenticated;
+grant execute on function public.has_shared_reference_for_professor(text) to anon, authenticated;
+
 create policy "Users can manage their own professors"
   on professors for all
   using (auth.uid() = user_id)
@@ -76,25 +130,13 @@ create policy "Public can view shared lor_requests"
   on lor_requests for select
   using (share_token is not null);
 
-create policy "Public can view professors in shared lors"
+create policy "Public can view professors in shared links"
   on professors for select
-  using (
-    exists (
-      select 1 from lor_requests
-      where lor_requests.professor_id = professors.id
-        and lor_requests.share_token is not null
-    )
-  );
+  using (public.has_shared_reference_for_professor(professors.id));
 
 create policy "Public can view applications in shared lors"
   on university_applications for select
-  using (
-    exists (
-      select 1 from lor_requests
-      where lor_requests.application_id = university_applications.id
-        and lor_requests.share_token is not null
-    )
-  );
+  using (public.has_shared_lor_for_application(university_applications.id));
 
 create policy "Public can view shared shortlists"
   on university_applications for select
@@ -107,33 +149,8 @@ create policy "Users can manage their own sop_entries"
 
 create policy "Public can view SOPs in shared shortlists"
   on sop_entries for select
-  using (
-    exists (
-      select 1 from university_applications
-      where university_applications.id = sop_entries.application_id
-        and university_applications.share_token is not null
-    )
-  );
+  using (public.is_shared_shortlist(sop_entries.application_id));
 
 create policy "Public can view lor_requests in shared shortlists"
   on lor_requests for select
-  using (
-    exists (
-      select 1 from university_applications
-      where university_applications.id = lor_requests.application_id
-        and university_applications.share_token is not null
-    )
-  );
-
-create policy "Public can view professors in shared shortlists"
-  on professors for select
-  using (
-    exists (
-      select 1
-      from lor_requests
-      join university_applications
-        on university_applications.id = lor_requests.application_id
-      where lor_requests.professor_id = professors.id
-        and university_applications.share_token is not null
-    )
-  );
+  using (public.is_shared_shortlist(lor_requests.application_id));

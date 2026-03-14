@@ -6,6 +6,12 @@ interface PageProps {
   params: Promise<{ token: string }>;
 }
 
+type SharedProfessor = {
+  id: string;
+  name: string;
+  email: string;
+};
+
 async function getShortlistData(token: string) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -36,7 +42,7 @@ async function getShortlistData(token: string) {
 
   const { data: professors } = professorIds.length
     ? await supabase.from("professors").select("id, name, email").in("id", professorIds)
-    : { data: [] as Array<{ id: string; name: string; email: string }> };
+    : { data: [] as SharedProfessor[] };
 
   return {
     shortlist: {

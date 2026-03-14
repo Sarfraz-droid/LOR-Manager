@@ -1,27 +1,25 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
+import Link from "next/link";
 import { useLoRStore } from "@/lib/store";
 import { useSopStore } from "@/lib/sopStore";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ProfessorCard } from "@/components/dashboard/ProfessorCard";
 import { LoRRequestRow } from "@/components/dashboard/LoRRequestRow";
 import { SopRow } from "@/components/dashboard/SopRow";
 import { Table, TableBody, TableHeader, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { NewProfessorDialog } from "@/components/dashboard/NewProfessorDialog";
-import { NewApplicationDialog } from "@/components/dashboard/NewApplicationDialog";
 import { NewRequestDialog } from "@/components/dashboard/NewRequestDialog";
-import { NewSopDialog } from "@/components/dashboard/NewSopDialog";
 import { AISuggestionTool } from "@/components/dashboard/AISuggestionTool";
 import { LoREditor } from "@/components/dashboard/LoREditor";
 import { SopEditor } from "@/components/dashboard/SopEditor";
-import { CollegeDashboardDialog } from "@/components/dashboard/CollegeDashboardDialog";
-import { GraduationCap, ClipboardList, BookOpen, Sparkles, LayoutDashboard, AlertTriangle, ScrollText, LogOut, Menu, X, Filter, Share2, LayoutTemplate } from "lucide-react";
+import { CollegeManagementSection } from "@/components/dashboard/CollegeManagementSection";
+import { GraduationCap, ClipboardList, BookOpen, Sparkles, LayoutDashboard, AlertTriangle, ScrollText, LogOut, Menu, X, Filter, Building2 } from "lucide-react";
 import { LoRRequest, SopEntry } from "@/lib/types";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { LandingPage } from "@/components/landing/LandingPage";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
@@ -45,8 +43,8 @@ export default function Home() {
     signInWithGoogle,
     signOut,
     addProfessor, 
-    addApplication, 
     addRequest, 
+    addApplication,
     updateRequestStatus,
     updateRequestContent,
     markReminded,
@@ -76,36 +74,12 @@ export default function Home() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [filterUniversity, setFilterUniversity] = useState<string>("all");
   const [filterProfessor, setFilterProfessor] = useState<string>("all");
-  const [shortlistForRequest, setShortlistForRequest] = useState<string | null>(null);
-  const [shortlistForSop, setShortlistForSop] = useState<string | null>(null);
-  const [selectedApplicationId, setSelectedApplicationId] = useState<string | null>(null);
   const filteredRequests = useMemo(() => requests.filter(req => {
     const app = applications.find(a => a.id === req.applicationId);
     const uniMatch = filterUniversity === "all" || app?.university === filterUniversity;
     const profMatch = filterProfessor === "all" || req.professorId === filterProfessor;
     return uniMatch && profMatch;
   }), [requests, applications, filterUniversity, filterProfessor]);
-  const shortlistedApplicationForSop = useMemo(
-    () => applications.find((application) => application.id === shortlistForSop) ?? null,
-    [applications, shortlistForSop]
-  );
-  const selectedApplication = useMemo(
-    () => applications.find((application) => application.id === selectedApplicationId) ?? null,
-    [applications, selectedApplicationId]
-  );
-  const connectedSops = useMemo(() => {
-    if (!selectedApplication) return [];
-    return sops.filter((sop) =>
-      sop.applicationId === selectedApplication.id ||
-      (!sop.applicationId &&
-        sop.college === selectedApplication.university &&
-        sop.program === selectedApplication.program)
-    );
-  }, [selectedApplication, sops]);
-  const connectedRequests = useMemo(() => {
-    if (!selectedApplication) return [];
-    return requests.filter((request) => request.applicationId === selectedApplication.id);
-  }, [selectedApplication, requests]);
   // Track which request IDs have already triggered a reminder this session so
   // the effect never fires toast/markReminded twice for the same request even
   // while the async markReminded call is still in-flight.
@@ -155,39 +129,6 @@ export default function Home() {
         title: "SOP Saved",
         description: "Your Statement of Purpose has been saved to your dashboard.",
       });
-    }
-  };
-
-  const handleShareShortlist = async (applicationId: string) => {
-    const token = await generateApplicationShareToken(applicationId);
-    if (!token) {
-      toast({
-        title: "Unable to share shortlist",
-        description: "Please try again in a moment.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      await navigator.clipboard.writeText(`${window.location.origin}/shortlist/${token}`);
-      toast({
-        title: "Public link copied",
-        description: "The college shortlist link is ready to share.",
-      });
-    } catch {
-      toast({
-        title: "Share link created",
-        description: `${window.location.origin}/shortlist/${token}`,
-      });
-    }
-  };
-
-  const handleDeleteApplication = async (applicationId: string) => {
-    await deleteApplication(applicationId);
-    removeSopsForApplication(applicationId);
-    if (selectedApplicationId === applicationId) {
-      setSelectedApplicationId(null);
     }
   };
 
@@ -258,35 +199,6 @@ export default function Home() {
         />
       )}
 
-      <CollegeDashboardDialog
-        open={!!selectedApplication}
-        onOpenChange={(open) => {
-          if (!open) setSelectedApplicationId(null);
-        }}
-        application={selectedApplication}
-        sops={connectedSops}
-        requests={connectedRequests}
-        professors={professors}
-        onCreateSop={() => {
-          if (!selectedApplication) return;
-          setSelectedApplicationId(null);
-          setShortlistForSop(selectedApplication.id);
-          setActiveTab("sop");
-        }}
-        onCreateLor={() => {
-          if (!selectedApplication) return;
-          setSelectedApplicationId(null);
-          setShortlistForRequest(selectedApplication.id);
-        }}
-        onOpenSop={(sop) => setEditingSop(sop)}
-        onOpenLor={(request) => setEditingRequest(request)}
-        onShare={() => {
-          if (selectedApplication) {
-            void handleShareShortlist(selectedApplication.id);
-          }
-        }}
-      />
-
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
@@ -335,6 +247,15 @@ export default function Home() {
             <ScrollText className="h-4 w-4" />
             <span className="text-sm font-medium">SOP Manager</span>
           </button>
+          <div className="text-[10px] uppercase font-bold text-primary-foreground/50 mb-2 mt-4">College</div>
+          <Link
+            href="/colleges"
+            className="flex items-center gap-3 px-3 py-2 rounded-md w-full text-left transition-colors hover:bg-white/5"
+            onClick={() => setSidebarOpen(false)}
+          >
+            <Building2 className="h-4 w-4" />
+            <span className="text-sm font-medium">College Management</span>
+          </Link>
         </nav>
 
         <div className="mt-auto flex flex-col gap-3">
@@ -388,8 +309,6 @@ export default function Home() {
                 professors={professors}
                 applications={applications}
                 onAdd={addRequest}
-                initialApplicationId={shortlistForRequest}
-                onInitialApplicationHandled={() => setShortlistForRequest(null)}
               />
             </div>
           </div>
@@ -407,7 +326,7 @@ export default function Home() {
               <GraduationCap className="h-4 w-4 sm:mr-2 shrink-0" /><span className="hidden sm:inline">Professors</span>
             </TabsTrigger>
             <TabsTrigger value="applications" className="data-[state=active]:bg-white py-2 text-xs sm:text-sm">
-              <BookOpen className="h-4 w-4 sm:mr-2 shrink-0" /><span className="hidden sm:inline">Shortlists</span>
+              <Building2 className="h-4 w-4 sm:mr-2 shrink-0" /><span className="hidden sm:inline">Colleges</span>
             </TabsTrigger>
             <TabsTrigger value="ai" className="data-[state=active]:bg-white py-2 text-xs sm:text-sm">
               <Sparkles className="h-4 w-4 sm:mr-2 shrink-0" /><span className="hidden sm:inline">AI Suggestion</span>
@@ -513,11 +432,6 @@ export default function Home() {
                   <CardTitle className="text-2xl">SOP Manager</CardTitle>
                   <CardDescription>Draft and track your Statements of Purpose for different colleges and shortlists.</CardDescription>
                 </div>
-                <NewSopDialog
-                  onAdd={addSop}
-                  initialApplication={shortlistedApplicationForSop}
-                  onInitialApplicationHandled={() => setShortlistForSop(null)}
-                />
               </CardHeader>
               <CardContent>
                 <div className="rounded-md border border-accent/10 overflow-x-auto">
@@ -578,86 +492,20 @@ export default function Home() {
           </TabsContent>
 
           <TabsContent value="applications" className="space-y-6 animate-in fade-in duration-300">
-            <div className="flex justify-between items-center">
-              <div>
-                <h3 className="text-2xl font-headline font-bold text-primary">College Shortlists</h3>
-                <p className="text-sm text-muted-foreground font-literata">Open each college dashboard to review the shortlist, its connected SOPs, connected LORs, and its public share link.</p>
-              </div>
-              <NewApplicationDialog onAdd={addApplication} />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {applications.map(app => (
-                <Card key={app.id} className="group overflow-hidden border-accent/20">
-                  <div className="h-2 bg-accent/20 w-full" />
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle className="text-xl text-primary">{app.university}</CardTitle>
-                        <CardDescription className="text-accent font-bold">{app.program}</CardDescription>
-                      </div>
-                      <Badge variant="outline" className="border-accent text-accent">
-                        {app.deadline}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="font-literata text-sm text-muted-foreground italic">
-                    {app.description || "No specific notes provided."}
-                  </CardContent>
-                  <CardFooter className="bg-muted/20 py-3 flex flex-wrap justify-between gap-2">
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        variant="default"
-                        size="sm"
-                        className="bg-primary text-primary-foreground"
-                        onClick={() => setSelectedApplicationId(app.id)}
-                      >
-                        <LayoutTemplate className="mr-2 h-4 w-4" />
-                        Open Dashboard
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="border-accent/30 text-accent hover:bg-accent hover:text-accent-foreground"
-                        onClick={() => {
-                          setShortlistForSop(app.id);
-                          setActiveTab("sop");
-                        }}
-                      >
-                        Add SOP
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground"
-                        onClick={() => setShortlistForRequest(app.id)}
-                      >
-                        Add LOR
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="border-blue-500 text-blue-600 hover:bg-blue-50"
-                        onClick={() => void handleShareShortlist(app.id)}
-                      >
-                        <Share2 className="mr-2 h-4 w-4" />
-                        Share
-                      </Button>
-                    </div>
-                    <button 
-                      onClick={() => void handleDeleteApplication(app.id)}
-                      className="text-xs text-destructive hover:underline font-bold"
-                    >
-                      Remove Shortlist
-                    </button>
-                  </CardFooter>
-                </Card>
-              ))}
-              {applications.length === 0 && (
-                <div className="col-span-full py-12 text-center border-2 border-dashed rounded-xl bg-muted/20">
-                  <p className="text-muted-foreground">No college shortlists tracked yet.</p>
-                </div>
-              )}
-            </div>
+            <CollegeManagementSection
+              applications={applications}
+              requests={requests}
+              sops={sops}
+              professors={professors}
+              addApplication={addApplication}
+              addRequest={addRequest}
+              addSop={addSop}
+              deleteApplication={deleteApplication}
+              removeSopsForApplication={removeSopsForApplication}
+              generateApplicationShareToken={generateApplicationShareToken}
+              onOpenSop={setEditingSop}
+              onOpenLor={setEditingRequest}
+            />
           </TabsContent>
 
           <TabsContent value="ai" className="animate-in fade-in duration-300">
