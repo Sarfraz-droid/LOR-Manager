@@ -73,12 +73,18 @@ export default function Home() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [filterUniversity, setFilterUniversity] = useState<string>("all");
   const [filterProfessor, setFilterProfessor] = useState<string>("all");
+  const [shortlistForRequest, setShortlistForRequest] = useState<string | null>(null);
+  const [shortlistForSop, setShortlistForSop] = useState<string | null>(null);
   const filteredRequests = useMemo(() => requests.filter(req => {
     const app = applications.find(a => a.id === req.applicationId);
     const uniMatch = filterUniversity === "all" || app?.university === filterUniversity;
     const profMatch = filterProfessor === "all" || req.professorId === filterProfessor;
     return uniMatch && profMatch;
   }), [requests, applications, filterUniversity, filterProfessor]);
+  const shortlistedApplicationForSop = useMemo(
+    () => applications.find((application) => application.id === shortlistForSop) ?? null,
+    [applications, shortlistForSop]
+  );
   // Track which request IDs have already triggered a reminder this session so
   // the effect never fires toast/markReminded twice for the same request even
   // while the async markReminded call is still in-flight.
@@ -292,10 +298,16 @@ export default function Home() {
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
               <h2 className="text-2xl md:text-4xl font-headline font-bold text-primary">Academic Portfolio</h2>
-              <p className="text-muted-foreground font-literata text-sm md:text-base">Manage your letters of recommendation, SOPs, and application targets.</p>
+              <p className="text-muted-foreground font-literata text-sm md:text-base">Manage your letters of recommendation, SOPs, and college shortlists in one place.</p>
             </div>
             <div className="flex gap-2">
-              <NewRequestDialog professors={professors} applications={applications} onAdd={addRequest} />
+              <NewRequestDialog
+                professors={professors}
+                applications={applications}
+                onAdd={addRequest}
+                initialApplicationId={shortlistForRequest}
+                onInitialApplicationHandled={() => setShortlistForRequest(null)}
+              />
             </div>
           </div>
         </header>
@@ -312,7 +324,7 @@ export default function Home() {
               <GraduationCap className="h-4 w-4 sm:mr-2 shrink-0" /><span className="hidden sm:inline">Professors</span>
             </TabsTrigger>
             <TabsTrigger value="applications" className="data-[state=active]:bg-white py-2 text-xs sm:text-sm">
-              <BookOpen className="h-4 w-4 sm:mr-2 shrink-0" /><span className="hidden sm:inline">Applications</span>
+              <BookOpen className="h-4 w-4 sm:mr-2 shrink-0" /><span className="hidden sm:inline">Shortlists</span>
             </TabsTrigger>
             <TabsTrigger value="ai" className="data-[state=active]:bg-white py-2 text-xs sm:text-sm">
               <Sparkles className="h-4 w-4 sm:mr-2 shrink-0" /><span className="hidden sm:inline">AI Suggestion</span>
@@ -371,7 +383,7 @@ export default function Home() {
                     <TableHeader className="bg-muted/30">
                       <TableRow>
                         <TableHead>Professor</TableHead>
-                        <TableHead>Application</TableHead>
+                         <TableHead>Shortlist</TableHead>
                         <TableHead>Deadline</TableHead>
                         <TableHead>Action</TableHead>
                         <TableHead className="text-right">Status</TableHead>
@@ -382,7 +394,7 @@ export default function Home() {
                       {requests.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={6} className="text-center py-12 text-muted-foreground italic">
-                            No requests logged yet. Start by adding a professor and an application.
+                            No requests logged yet. Start by adding a professor and a college shortlist.
                           </TableCell>
                         </TableRow>
                       ) : filteredRequests.length === 0 ? (
@@ -416,9 +428,13 @@ export default function Home() {
               <CardHeader className="flex flex-row items-center justify-between space-y-0">
                 <div>
                   <CardTitle className="text-2xl">SOP Manager</CardTitle>
-                  <CardDescription>Draft and track your Statements of Purpose for different colleges.</CardDescription>
+                  <CardDescription>Draft and track your Statements of Purpose for different colleges and shortlists.</CardDescription>
                 </div>
-                <NewSopDialog onAdd={addSop} />
+                <NewSopDialog
+                  onAdd={addSop}
+                  initialApplication={shortlistedApplicationForSop}
+                  onInitialApplicationHandled={() => setShortlistForSop(null)}
+                />
               </CardHeader>
               <CardContent>
                 <div className="rounded-md border border-accent/10 overflow-x-auto">
@@ -481,8 +497,8 @@ export default function Home() {
           <TabsContent value="applications" className="space-y-6 animate-in fade-in duration-300">
             <div className="flex justify-between items-center">
               <div>
-                <h3 className="text-2xl font-headline font-bold text-primary">Application Targets</h3>
-                <p className="text-sm text-muted-foreground font-literata">List the programs and scholarships you are applying to.</p>
+                <h3 className="text-2xl font-headline font-bold text-primary">College Shortlists</h3>
+                <p className="text-sm text-muted-foreground font-literata">Shortlist the programs you are targeting, then launch matching SOPs and LORs from the same college card.</p>
               </div>
               <NewApplicationDialog onAdd={addApplication} />
             </div>
@@ -504,19 +520,40 @@ export default function Home() {
                   <CardContent className="font-literata text-sm text-muted-foreground italic">
                     {app.description || "No specific notes provided."}
                   </CardContent>
-                  <CardFooter className="bg-muted/20 py-3 flex justify-end">
+                  <CardFooter className="bg-muted/20 py-3 flex flex-wrap justify-between gap-2">
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-accent/30 text-accent hover:bg-accent hover:text-accent-foreground"
+                        onClick={() => {
+                          setShortlistForSop(app.id);
+                          setActiveTab("sop");
+                        }}
+                      >
+                        Add SOP
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground"
+                        onClick={() => setShortlistForRequest(app.id)}
+                      >
+                        Add LOR
+                      </Button>
+                    </div>
                     <button 
                       onClick={() => deleteApplication(app.id)}
                       className="text-xs text-destructive hover:underline font-bold"
                     >
-                      Remove Target
+                      Remove Shortlist
                     </button>
                   </CardFooter>
                 </Card>
               ))}
               {applications.length === 0 && (
                 <div className="col-span-full py-12 text-center border-2 border-dashed rounded-xl bg-muted/20">
-                  <p className="text-muted-foreground">No applications tracked yet.</p>
+                  <p className="text-muted-foreground">No college shortlists tracked yet.</p>
                 </div>
               )}
             </div>

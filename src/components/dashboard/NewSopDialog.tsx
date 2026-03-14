@@ -1,20 +1,42 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PlusCircle } from "lucide-react";
-import { SopEntry } from "@/lib/types";
+import { SopEntry, UniversityApplication } from "@/lib/types";
 
-export function NewSopDialog({ onAdd }: { onAdd: (s: SopEntry) => void }) {
+interface NewSopDialogProps {
+  onAdd: (s: SopEntry) => void;
+  initialApplication?: UniversityApplication | null;
+  onInitialApplicationHandled?: () => void;
+}
+
+export function NewSopDialog({
+  onAdd,
+  initialApplication,
+  onInitialApplicationHandled,
+}: NewSopDialogProps) {
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
     college: "",
     program: "",
     deadline: "",
   });
+
+  useEffect(() => {
+    if (!initialApplication) return;
+
+    setFormData({
+      college: initialApplication.university,
+      program: initialApplication.program,
+      deadline: initialApplication.deadline,
+    });
+    setOpen(true);
+    onInitialApplicationHandled?.();
+  }, [initialApplication, onInitialApplicationHandled]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
