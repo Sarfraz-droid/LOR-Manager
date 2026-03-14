@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +16,8 @@ interface NewRequestDialogProps {
   onAdd: (req: LoRRequest) => void;
   initialApplicationId?: string | null;
   onInitialApplicationHandled?: () => void;
+  autoOpenOnInitialApplication?: boolean;
+  children?: ReactNode;
 }
 
 export function NewRequestDialog({
@@ -23,6 +26,8 @@ export function NewRequestDialog({
   onAdd,
   initialApplicationId,
   onInitialApplicationHandled,
+  autoOpenOnInitialApplication = true,
+  children,
 }: NewRequestDialogProps) {
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
@@ -42,9 +47,11 @@ export function NewRequestDialog({
       applicationId: application.id,
       deadline: application.deadline,
     }));
-    setOpen(true);
-    onInitialApplicationHandled?.();
-  }, [applications, initialApplicationId, onInitialApplicationHandled]);
+    if (autoOpenOnInitialApplication) {
+      setOpen(true);
+      onInitialApplicationHandled?.();
+    }
+  }, [applications, autoOpenOnInitialApplication, initialApplicationId, onInitialApplicationHandled]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,9 +72,11 @@ export function NewRequestDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="border-accent text-accent hover:bg-accent hover:text-accent-foreground">
-          <PlusCircle className="mr-2 h-4 w-4" /> Log New Request
-        </Button>
+        {children ?? (
+          <Button variant="outline" className="border-accent text-accent hover:bg-accent hover:text-accent-foreground">
+            <PlusCircle className="mr-2 h-4 w-4" /> Log New Request
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>

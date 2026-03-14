@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,12 +13,16 @@ interface NewSopDialogProps {
   onAdd: (s: SopEntry) => void;
   initialApplication?: UniversityApplication | null;
   onInitialApplicationHandled?: () => void;
+  autoOpenOnInitialApplication?: boolean;
+  children?: ReactNode;
 }
 
 export function NewSopDialog({
   onAdd,
   initialApplication,
   onInitialApplicationHandled,
+  autoOpenOnInitialApplication = true,
+  children,
 }: NewSopDialogProps) {
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
@@ -36,9 +41,11 @@ export function NewSopDialog({
       deadline: initialApplication.deadline,
       applicationId: initialApplication.id,
     });
-    setOpen(true);
-    onInitialApplicationHandled?.();
-  }, [initialApplication, onInitialApplicationHandled]);
+    if (autoOpenOnInitialApplication) {
+      setOpen(true);
+      onInitialApplicationHandled?.();
+    }
+  }, [autoOpenOnInitialApplication, initialApplication, onInitialApplicationHandled]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,9 +65,11 @@ export function NewSopDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-primary text-primary-foreground">
-          <PlusCircle className="mr-2 h-4 w-4" /> New SOP
-        </Button>
+        {children ?? (
+          <Button className="bg-primary text-primary-foreground">
+            <PlusCircle className="mr-2 h-4 w-4" /> New SOP
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
