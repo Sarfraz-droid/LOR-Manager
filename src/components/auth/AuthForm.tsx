@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { motion, AnimatePresence } from "motion/react";
 
 type Props = {
   onSignIn: (email: string, password: string) => Promise<string | null>;
@@ -60,8 +61,18 @@ export function AuthForm({ onSignIn, onSignUp, onSignInWithGoogle, initialMode =
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md space-y-6">
-        <div className="flex flex-col items-center gap-3 text-center">
+      <motion.div
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        className="w-full max-w-md space-y-6"
+      >
+        <motion.div
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.4, delay: 0.1, type: "spring", stiffness: 200 }}
+          className="flex flex-col items-center gap-3 text-center"
+        >
           <div className="bg-primary p-3 rounded-2xl">
             <BookOpen className="h-8 w-8 text-primary-foreground" />
           </div>
@@ -69,8 +80,16 @@ export function AuthForm({ onSignIn, onSignUp, onSignInWithGoogle, initialMode =
             <h1 className="text-3xl font-headline font-bold text-primary">LoR Tracker Pro</h1>
             <p className="text-muted-foreground text-sm mt-1">Manage your letters of recommendation</p>
           </div>
-        </div>
+        </motion.div>
 
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={mode}
+            initial={{ opacity: 0, x: mode === "signup" ? 20 : -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: mode === "signup" ? -20 : 20 }}
+            transition={{ duration: 0.25, ease: "easeInOut" }}
+          >
         <Card>
           <CardHeader>
             <CardTitle className="text-xl">
@@ -84,16 +103,28 @@ export function AuthForm({ onSignIn, onSignUp, onSignInWithGoogle, initialMode =
           </CardHeader>
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-4">
+              <AnimatePresence>
               {error && (
-                <div className="rounded-md bg-destructive/10 border border-destructive/20 px-3 py-2 text-sm text-destructive">
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="rounded-md bg-destructive/10 border border-destructive/20 px-3 py-2 text-sm text-destructive"
+                >
                   {error}
-                </div>
+                </motion.div>
               )}
               {info && (
-                <div className="rounded-md bg-accent/10 border border-accent/20 px-3 py-2 text-sm text-accent-foreground">
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="rounded-md bg-accent/10 border border-accent/20 px-3 py-2 text-sm text-accent-foreground"
+                >
                   {info}
-                </div>
+                </motion.div>
               )}
+              </AnimatePresence>
               <div className="space-y-1.5">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -195,7 +226,9 @@ export function AuthForm({ onSignIn, onSignUp, onSignInWithGoogle, initialMode =
             </CardFooter>
           </form>
         </Card>
-      </div>
+          </motion.div>
+        </AnimatePresence>
+      </motion.div>
     </div>
   );
 }

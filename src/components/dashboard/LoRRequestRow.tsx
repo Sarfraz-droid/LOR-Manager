@@ -5,6 +5,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { Calendar, Building2, User, PenTool, Trash2 } from "lucide-react";
+import { motion } from "motion/react";
+
+const MotionTableRow = motion.create(TableRow);
 
 interface LoRRequestRowProps {
   request: LoRRequest;
@@ -13,13 +16,19 @@ interface LoRRequestRowProps {
   onStatusChange: (id: string, status: LoRStatus) => void;
   onWrite: (request: LoRRequest) => void;
   onDelete: (id: string) => void;
+  index?: number;
 }
 
-export function LoRRequestRow({ request, professor, application, onStatusChange, onWrite, onDelete }: LoRRequestRowProps) {
+export function LoRRequestRow({ request, professor, application, onStatusChange, onWrite, onDelete, index = 0 }: LoRRequestRowProps) {
   const isUrgent = new Date(request.deadline).getTime() - new Date().getTime() < 1000 * 60 * 60 * 24 * 7;
 
   return (
-    <TableRow className="group">
+    <MotionTableRow
+      initial={{ opacity: 0, x: -12 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.3, delay: index * 0.06, ease: "easeOut" }}
+      className="group"
+    >
       <TableCell className="font-medium">
         <div className="flex flex-col">
           <span className="flex items-center gap-2 text-primary">
@@ -99,6 +108,6 @@ export function LoRRequestRow({ request, professor, application, onStatusChange,
           <Trash2 className="h-3.5 w-3.5" />
         </Button>
       </TableCell>
-    </TableRow>
+    </MotionTableRow>
   );
 }
