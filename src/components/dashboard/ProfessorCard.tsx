@@ -3,15 +3,23 @@ import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/componen
 import { Badge } from "@/components/ui/badge";
 import { Mail, GraduationCap, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { motion } from "motion/react";
 
 interface ProfessorCardProps {
   professor: Professor;
   onDelete?: (id: string) => void;
+  index?: number;
 }
 
-export function ProfessorCard({ professor, onDelete }: ProfessorCardProps) {
+export function ProfessorCard({ professor, onDelete, index = 0 }: ProfessorCardProps) {
   return (
-    <Card className="hover:shadow-md transition-all border-l-4 border-l-primary">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, delay: index * 0.07, ease: [0.22, 1, 0.36, 1] }}
+      whileHover={{ y: -3, transition: { duration: 0.2 } }}
+    >
+    <Card className="border-l-4 border-l-primary h-full transition-all">
       <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
           <CardTitle className="text-xl text-primary flex items-center gap-2">
@@ -40,5 +48,6 @@ export function ProfessorCard({ professor, onDelete }: ProfessorCardProps) {
         </div>
       </CardContent>
     </Card>
+    </motion.div>
   );
 }

@@ -5,20 +5,29 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { Calendar, Building2, PenTool, Trash2 } from "lucide-react";
+import { motion } from "motion/react";
+
+const MotionTableRow = motion.create(TableRow);
 
 interface SopRowProps {
   sop: SopEntry;
   onStatusChange: (id: string, status: SopStatus) => void;
   onWrite: (sop: SopEntry) => void;
   onDelete: (id: string) => void;
+  index?: number;
 }
 
-export function SopRow({ sop, onStatusChange, onWrite, onDelete }: SopRowProps) {
+export function SopRow({ sop, onStatusChange, onWrite, onDelete, index = 0 }: SopRowProps) {
   const isUrgent =
     new Date(sop.deadline).getTime() - new Date().getTime() < 1000 * 60 * 60 * 24 * 7;
 
   return (
-    <TableRow className="group">
+    <MotionTableRow
+      initial={{ opacity: 0, x: -12 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.3, delay: index * 0.06, ease: "easeOut" }}
+      className="group"
+    >
       <TableCell className="font-medium">
         <span className="flex items-center gap-2 text-primary">
           <Building2 className="h-3 w-3" />
@@ -87,6 +96,6 @@ export function SopRow({ sop, onStatusChange, onWrite, onDelete }: SopRowProps) 
           <Trash2 className="h-3.5 w-3.5" />
         </Button>
       </TableCell>
-    </TableRow>
+    </MotionTableRow>
   );
 }

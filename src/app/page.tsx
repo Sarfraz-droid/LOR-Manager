@@ -28,6 +28,7 @@ import { GeminiKeyDialog } from "@/components/dashboard/GeminiKeyDialog";
 
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { motion } from "motion/react";
 
 
 export default function Home() {
@@ -286,7 +287,12 @@ export default function Home() {
 
       {/* Main Content Area */}
       <main className="flex-1 p-4 md:p-8 overflow-y-auto min-w-0">
-        <header className="mb-8">
+        <motion.header
+          initial={{ opacity: 0, y: -16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+          className="mb-8"
+        >
           {/* Mobile top bar */}
           <div className="flex items-center gap-3 mb-4 md:hidden">
             <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)} aria-label="Open menu">
@@ -312,7 +318,7 @@ export default function Home() {
               />
             </div>
           </div>
-        </header>
+        </motion.header>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="bg-muted/50 p-1 h-auto mb-8 grid grid-cols-3 md:grid-cols-5 gap-1">
@@ -406,10 +412,11 @@ export default function Home() {
                           </TableCell>
                         </TableRow>
                       ) : (
-                        filteredRequests.map(req => (
+                        filteredRequests.map((req, idx) => (
                           <LoRRequestRow
                             key={req.id}
                             request={req}
+                            index={idx}
                             onStatusChange={updateRequestStatus}
                             onWrite={setEditingRequest}
                             onDelete={deleteRequest}
@@ -454,10 +461,11 @@ export default function Home() {
                           </TableCell>
                         </TableRow>
                       ) : (
-                        sops.map(sop => (
+                        sops.map((sop, idx) => (
                           <SopRow
                             key={sop.id}
                             sop={sop}
+                            index={idx}
                             onStatusChange={updateSopStatus}
                             onWrite={setEditingSop}
                             onDelete={deleteSop}
@@ -480,8 +488,8 @@ export default function Home() {
               <NewProfessorDialog onAdd={addProfessor} />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {professors.map(prof => (
-                <ProfessorCard key={prof.id} professor={prof} onDelete={deleteProfessor} />
+              {professors.map((prof, idx) => (
+                <ProfessorCard key={prof.id} professor={prof} index={idx} onDelete={deleteProfessor} />
               ))}
               {professors.length === 0 && (
                 <div className="col-span-full py-12 text-center border-2 border-dashed rounded-xl bg-muted/20">
