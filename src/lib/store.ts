@@ -22,6 +22,7 @@ type ApplicationRow = {
   program: string;
   deadline: string;
   description: string;
+  share_token: string | null;
 };
 
 type RequestRow = {
@@ -56,6 +57,7 @@ function toApplication(row: ApplicationRow): UniversityApplication {
     program: row.program,
     deadline: row.deadline,
     description: row.description,
+    shareToken: row.share_token ?? undefined,
   };
 }
 
@@ -274,6 +276,26 @@ export function useLoRStore() {
     return null;
   }, [requests]);
 
+  const generateApplicationShareToken = useCallback(async (id: string): Promise<string | null> => {
+    const existing = applications.find((application) => application.id === id)?.shareToken;
+    if (existing) return existing;
+    const token = crypto.randomUUID();
+    const { error } = await supabase
+      .from("university_applications")
+      .update({ share_token: token })
+      .eq("id", id);
+    if (!error) {
+      setApplications((prev) =>
+        prev.map((application) =>
+          application.id === id ? { ...application, shareToken: token } : application
+        )
+      );
+      return token;
+    }
+    console.error("generateApplicationShareToken:", error.message);
+    return null;
+  }, [applications]);
+
   const deleteRequest = useCallback(async (id: string) => {
     const { error } = await supabase.from("lor_requests").delete().eq("id", id);
     if (!error)
@@ -299,6 +321,7 @@ export function useLoRStore() {
     updateRequestContent,
     markReminded,
     generateShareToken,
+    generateApplicationShareToken,
     deleteProfessor,
     deleteApplication,
     deleteRequest,

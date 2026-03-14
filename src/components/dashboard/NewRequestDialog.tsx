@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,15 +14,44 @@ interface NewRequestDialogProps {
   professors: Professor[];
   applications: UniversityApplication[];
   onAdd: (req: LoRRequest) => void;
+  initialApplicationId?: string | null;
+  onInitialApplicationHandled?: () => void;
+  autoOpenOnInitialApplication?: boolean;
+  children?: ReactNode;
 }
 
-export function NewRequestDialog({ professors, applications, onAdd }: NewRequestDialogProps) {
+export function NewRequestDialog({
+  professors,
+  applications,
+  onAdd,
+  initialApplicationId,
+  onInitialApplicationHandled,
+  autoOpenOnInitialApplication = true,
+  children,
+}: NewRequestDialogProps) {
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
     professorId: "",
     applicationId: "",
     deadline: "",
   });
+
+  useEffect(() => {
+    if (!initialApplicationId) return;
+
+    const application = applications.find((entry) => entry.id === initialApplicationId);
+    if (!application) return;
+
+    setFormData((current) => ({
+      ...current,
+      applicationId: application.id,
+      deadline: application.deadline,
+    }));
+    if (autoOpenOnInitialApplication) {
+      setOpen(true);
+      onInitialApplicationHandled?.();
+    }
+  }, [applications, autoOpenOnInitialApplication, initialApplicationId, onInitialApplicationHandled]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,9 +72,11 @@ export function NewRequestDialog({ professors, applications, onAdd }: NewRequest
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="border-accent text-accent hover:bg-accent hover:text-accent-foreground">
-          <PlusCircle className="mr-2 h-4 w-4" /> Log New Request
-        </Button>
+        {children ?? (
+          <Button variant="outline" className="border-accent text-accent hover:bg-accent hover:text-accent-foreground">
+            <PlusCircle className="mr-2 h-4 w-4" /> Log New Request
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
@@ -65,10 +97,20 @@ export function NewRequestDialog({ professors, applications, onAdd }: NewRequest
             </Select>
           </div>
           <div className="grid gap-2">
-            <Label>Link Application</Label>
-            <Select onValueChange={(val) => setFormData({...formData, applicationId: val})}>
+            <Label>Link College Shortlist</Label>
+            <Select
+              value={formData.applicationId}
+              onValueChange={(val) => {
+                const application = applications.find((entry) => entry.id === val);
+                setFormData({
+                  ...formData,
+                  applicationId: val,
+                  deadline: application?.deadline ?? formData.deadline,
+                });
+              }}
+            >
               <SelectTrigger>
-                <SelectValue placeholder="Choose an application" />
+                <SelectValue placeholder="Choose a shortlist" />
               </SelectTrigger>
               <SelectContent>
                 {applications.map(a => (

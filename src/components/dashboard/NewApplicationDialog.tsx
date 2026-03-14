@@ -35,12 +35,12 @@ export function NewApplicationDialog({ onAdd }: { onAdd: (a: UniversityApplicati
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" className="border-primary text-primary hover:bg-primary/10">
-          <PlusCircle className="mr-2 h-4 w-4" /> Add Application
+          <PlusCircle className="mr-2 h-4 w-4" /> Add College Shortlist
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle className="text-primary">Add Application Target</DialogTitle>
+          <DialogTitle className="text-primary">Add College Shortlist</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
           <div className="grid gap-2">
@@ -60,7 +60,7 @@ export function NewApplicationDialog({ onAdd }: { onAdd: (a: UniversityApplicati
             <Textarea id="desc" value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} placeholder="Mention research in late-medieval poetry." />
           </div>
           <DialogFooter>
-            <Button type="submit" className="bg-primary text-primary-foreground">Add Application</Button>
+            <Button type="submit" className="bg-primary text-primary-foreground">Save Shortlist</Button>
           </DialogFooter>
         </form>
       </DialogContent>

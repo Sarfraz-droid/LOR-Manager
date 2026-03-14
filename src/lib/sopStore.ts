@@ -12,6 +12,7 @@ type SopRow = {
   college: string;
   program: string;
   deadline: string;
+  application_id: string | null;
   status: SopEntry["status"];
   content: string;
   last_edited: string | null;
@@ -26,6 +27,7 @@ function toSopEntry(row: SopRow): SopEntry {
     college: row.college,
     program: row.program,
     deadline: row.deadline,
+    applicationId: row.application_id ?? undefined,
     status: row.status,
     content: row.content ?? "",
     lastEdited: row.last_edited ?? undefined,
@@ -70,6 +72,7 @@ export function useSopStore(userId: string | null) {
       college: sop.college,
       program: sop.program,
       deadline: sop.deadline,
+      application_id: sop.applicationId ?? null,
       status: sop.status,
       content: sop.content ?? "",
     });
@@ -106,6 +109,10 @@ export function useSopStore(userId: string | null) {
     else console.error("deleteSop:", error.message);
   }, []);
 
+  const removeSopsForApplication = useCallback((applicationId: string) => {
+    setSops((prev) => prev.filter((sop) => sop.applicationId !== applicationId));
+  }, []);
+
   return {
     sops,
     isLoading,
@@ -113,5 +120,6 @@ export function useSopStore(userId: string | null) {
     updateSopStatus,
     updateSopContent,
     deleteSop,
+    removeSopsForApplication,
   };
 }
