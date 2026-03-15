@@ -6,29 +6,40 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { PlusCircle } from "lucide-react";
+import { Loader2, PlusCircle } from "lucide-react";
 import { UniversityApplication } from "@/lib/types";
 
-export function NewApplicationDialog({ onAdd }: { onAdd: (a: UniversityApplication) => void }) {
+export function NewApplicationDialog({ onAdd }: { onAdd: (a: UniversityApplication) => void | Promise<void> }) {
   const [open, setOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     university: "",
     program: "",
     deadline: "",
     description: "",
+    relevantLinks: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onAdd({
-      id: Math.random().toString(36).substr(2, 9),
-      university: formData.university,
-      program: formData.program,
-      deadline: formData.deadline,
-      description: formData.description,
-    });
-    setFormData({ university: "", program: "", deadline: "", description: "" });
-    setOpen(false);
+    try {
+      setIsSubmitting(true);
+      await onAdd({
+        id: Math.random().toString(36).substr(2, 9),
+        university: formData.university,
+        program: formData.program,
+        deadline: formData.deadline,
+        description: formData.description,
+        relevantLinks: formData.relevantLinks
+          .split(/\r?\n|,/) 
+          .map((link) => link.trim())
+          .filter((link) => link.length > 0),
+      });
+      setFormData({ university: "", program: "", deadline: "", description: "", relevantLinks: "" });
+      setOpen(false);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -59,8 +70,20 @@ export function NewApplicationDialog({ onAdd }: { onAdd: (a: UniversityApplicati
             <Label htmlFor="desc">Notes/Description</Label>
             <Textarea id="desc" value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} placeholder="Mention research in late-medieval poetry." />
           </div>
+          <div className="grid gap-2">
+            <Label htmlFor="links">Relevant Links (comma or new line separated)</Label>
+            <Textarea
+              id="links"
+              value={formData.relevantLinks}
+              onChange={(e) => setFormData({ ...formData, relevantLinks: e.target.value })}
+              placeholder="https://department.example.edu&#10;https://faculty.example.edu/lab"
+            />
+          </div>
           <DialogFooter>
-            <Button type="submit" className="bg-primary text-primary-foreground">Save Shortlist</Button>
+            <Button type="submit" className="bg-primary text-primary-foreground" disabled={isSubmitting}>
+              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {isSubmitting ? "Saving..." : "Save Shortlist"}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

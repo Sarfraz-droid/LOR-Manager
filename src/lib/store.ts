@@ -22,6 +22,7 @@ type ApplicationRow = {
   program: string;
   deadline: string;
   description: string;
+  relevant_links: string[] | null;
   share_token: string | null;
 };
 
@@ -57,6 +58,7 @@ function toApplication(row: ApplicationRow): UniversityApplication {
     program: row.program,
     deadline: row.deadline,
     description: row.description,
+    relevantLinks: row.relevant_links ?? [],
     shareToken: row.share_token ?? undefined,
   };
 }
@@ -181,6 +183,7 @@ export function useLoRStore() {
       program: app.program,
       deadline: app.deadline,
       description: app.description,
+      relevant_links: app.relevantLinks,
     });
     if (!error) setApplications((prev) => [...prev, app]);
     else console.error("addApplication:", error.message);

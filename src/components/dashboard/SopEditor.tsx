@@ -66,6 +66,7 @@ export function SopEditor({ sop, onSave, onClose, geminiKey }: SopEditorProps) {
   const [showAiPanel, setShowAiPanel] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const [shareStatus, setShareStatus] = useState<"idle" | "copied">("idle");
+  const [isSharingDocs, setIsSharingDocs] = useState(false);
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const shareTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -92,16 +93,21 @@ export function SopEditor({ sop, onSave, onClose, geminiKey }: SopEditorProps) {
   }, [content]);
 
   const handleShareToDocs = async () => {
-    const plainText = stripHtml(content);
     try {
-      await navigator.clipboard.writeText(plainText);
-    } catch {
-      // clipboard unavailable; user can still paste manually from the new Doc
+      setIsSharingDocs(true);
+      const plainText = stripHtml(content);
+      try {
+        await navigator.clipboard.writeText(plainText);
+      } catch {
+        // clipboard unavailable; user can still paste manually from the new Doc
+      }
+      window.open("https://docs.new", "_blank", "noopener,noreferrer");
+      setShareStatus("copied");
+      if (shareTimer.current) clearTimeout(shareTimer.current);
+      shareTimer.current = setTimeout(() => setShareStatus("idle"), 3000);
+    } finally {
+      setIsSharingDocs(false);
     }
-    window.open("https://docs.new", "_blank", "noopener,noreferrer");
-    setShareStatus("copied");
-    if (shareTimer.current) clearTimeout(shareTimer.current);
-    shareTimer.current = setTimeout(() => setShareStatus("idle"), 3000);
   };
 
   const handleDownloadPdf = () => {
@@ -150,7 +156,7 @@ export function SopEditor({ sop, onSave, onClose, geminiKey }: SopEditorProps) {
   return (
     <div className="fixed inset-0 bg-background z-50 flex flex-col animate-in fade-in duration-300">
       {/* Header */}
-      <header className="border-b px-6 py-3 flex items-center justify-between bg-white/50 backdrop-blur-md sticky top-0 z-10">
+      <header className="border-b px-6 py-3 flex items-center justify-between bg-surface-1/80 backdrop-blur-md sticky top-0 z-10">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full">
             <ArrowLeft className="h-5 w-5" />
@@ -175,7 +181,7 @@ export function SopEditor({ sop, onSave, onClose, geminiKey }: SopEditorProps) {
             </span>
           )}
           {saveStatus === "saved" && (
-            <span className="flex items-center gap-1 text-xs text-green-600" aria-live="polite">
+            <span className="flex items-center gap-1 text-xs text-success" aria-live="polite">
               <CheckCircle className="h-3 w-3" aria-hidden="true" />
               <span className="hidden sm:inline">Saved</span>
             </span>
@@ -197,11 +203,12 @@ export function SopEditor({ sop, onSave, onClose, geminiKey }: SopEditorProps) {
             variant="outline"
             size="sm"
             onClick={handleShareToDocs}
-            className="h-8 border-blue-500 text-blue-600 hover:bg-blue-50"
+            disabled={isSharingDocs}
+            className="h-8 border-info/50 text-info hover:bg-info/15"
             title="Copy content to clipboard and open a new Google Doc"
           >
-            <Share2 className="h-3.5 w-3.5 sm:mr-2" />
-            <span className="hidden sm:inline">{shareStatus === "copied" ? "Copied!" : "Google Docs"}</span>
+            {isSharingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin sm:mr-2" /> : <Share2 className="h-3.5 w-3.5 sm:mr-2" />}
+            <span className="hidden sm:inline">{isSharingDocs ? "Sharing..." : shareStatus === "copied" ? "Copied!" : "Google Docs"}</span>
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -282,9 +289,9 @@ export function SopEditor({ sop, onSave, onClose, geminiKey }: SopEditorProps) {
       )}
 
       {/* Main Editing Area */}
-      <main className="flex-1 overflow-y-auto bg-[#fafafa]">
+      <main className="flex-1 overflow-y-auto bg-surface-0/50">
         <div className="max-w-4xl mx-auto py-12 px-6">
-          <Card className="border-none shadow-xl bg-white min-h-[85vh] flex flex-col">
+          <Card className="border-border/70 shadow-xl bg-card/95 min-h-[85vh] flex flex-col">
             <CardContent className="p-6 sm:p-12 md:p-16 flex-1 flex flex-col">
               <div className="mb-10 flex items-center gap-4 text-muted-foreground border-b border-muted/30 pb-6">
                 <div className="p-3 bg-accent/10 rounded-xl">
@@ -294,7 +301,7 @@ export function SopEditor({ sop, onSave, onClose, geminiKey }: SopEditorProps) {
                   <h1 className="text-3xl font-headline font-bold text-primary tracking-tight">
                     Statement of Purpose
                   </h1>
-                  <p className="text-sm font-literata">
+                  <p className="text-sm font-body">
                     Target: <span className="text-accent font-bold">{sop.program}</span> at{" "}
                     <span className="text-accent font-bold">{sop.college}</span>
                   </p>

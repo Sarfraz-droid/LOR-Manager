@@ -42,7 +42,7 @@ export function AISuggestionTool({ professors, geminiKey }: AISuggestionToolProp
 
   return (
     <div className="space-y-6">
-      <Card className="border-accent/30 bg-cream/50">
+      <Card className="border-accent/30 bg-surface-1/65">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-primary">
             <Sparkles className="h-5 w-5 text-accent" />
@@ -58,7 +58,7 @@ export function AISuggestionTool({ professors, geminiKey }: AISuggestionToolProp
             <label className="text-sm font-medium text-primary">Academic History & Interests</label>
             <Textarea
               placeholder="e.g., I specialized in AI ethics, completed a project on neural networks under Dr. Smith, and have a high GPA in mathematics. I am applying for research-heavy Master's programs..."
-              className="min-h-[150px] font-literata border-accent/20"
+              className="min-h-[150px] font-body border-accent/20"
               value={history}
               onChange={(e) => setHistory(e.target.value)}
             />
@@ -96,8 +96,8 @@ export function AISuggestionTool({ professors, geminiKey }: AISuggestionToolProp
           <CardContent className="space-y-4">
             <div className="p-4 bg-secondary/50 rounded-lg">
               <div className="flex items-start gap-3">
-                <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 shrink-0" />
-                <p className="text-sm leading-relaxed text-primary font-literata italic">
+                <CheckCircle2 className="h-5 w-5 text-success mt-0.5 shrink-0" />
+                <p className="text-sm leading-relaxed text-primary font-body italic">
                   "{result.reasoning}"
                 </p>
               </div>

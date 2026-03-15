@@ -80,7 +80,7 @@ export function SopRow({ sop, onStatusChange, onWrite, onDelete, index = 0 }: So
               ? "secondary"
               : "outline"
           }
-          className={sop.status === "Finalized" ? "bg-green-600 hover:bg-green-700" : ""}
+          className={sop.status === "Finalized" ? "bg-success text-success-foreground hover:bg-success/90" : ""}
         >
           {sop.status}
         </Badge>

@@ -10,7 +10,7 @@ import { NewSopDialog } from "@/components/dashboard/NewSopDialog";
 import { useToast } from "@/hooks/use-toast";
 import type { LoRRequest, Professor, SopEntry, UniversityApplication } from "@/lib/types";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ExternalLink, Share2 } from "lucide-react";
+import { ExternalLink, Loader2, Share2, Trash2 } from "lucide-react";
 
 interface CollegeManagementSectionProps {
   applications: UniversityApplication[];
@@ -50,6 +50,8 @@ export function CollegeManagementSection({
   const { toast } = useToast();
   const [shortlistForRequest, setShortlistForRequest] = useState<string | null>(null);
   const [shortlistForSop, setShortlistForSop] = useState<string | null>(null);
+  const [sharingApplicationId, setSharingApplicationId] = useState<string | null>(null);
+  const [deletingApplicationId, setDeletingApplicationId] = useState<string | null>(null);
 
   const shortlistedApplicationForSop = useMemo(
     () => applications.find((application) => application.id === shortlistForSop) ?? null,
@@ -57,35 +59,45 @@ export function CollegeManagementSection({
   );
 
   const handleShareShortlist = async (applicationId: string) => {
-    const token = await generateApplicationShareToken(applicationId);
-    if (!token) {
-      toast({
-        title: "Unable to share shortlist",
-        description: "Please try again in a moment.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin;
-
     try {
-      await navigator.clipboard.writeText(`${baseUrl}/shortlist/${token}`);
-      toast({
-        title: "Public link copied",
-        description: "The college shortlist link is ready to share.",
-      });
-    } catch {
-      toast({
-        title: "Share link created",
-        description: `${baseUrl}/shortlist/${token}`,
-      });
+      setSharingApplicationId(applicationId);
+      const token = await generateApplicationShareToken(applicationId);
+      if (!token) {
+        toast({
+          title: "Unable to share shortlist",
+          description: "Please try again in a moment.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin;
+
+      try {
+        await navigator.clipboard.writeText(`${baseUrl}/shortlist/${token}`);
+        toast({
+          title: "Public link copied",
+          description: "The college shortlist link is ready to share.",
+        });
+      } catch {
+        toast({
+          title: "Share link created",
+          description: `${baseUrl}/shortlist/${token}`,
+        });
+      }
+    } finally {
+      setSharingApplicationId(null);
     }
   };
 
   const handleDeleteApplication = async (applicationId: string) => {
-    await deleteApplication(applicationId);
-    removeSopsForApplication(applicationId);
+    try {
+      setDeletingApplicationId(applicationId);
+      await deleteApplication(applicationId);
+      removeSopsForApplication(applicationId);
+    } finally {
+      setDeletingApplicationId(null);
+    }
   };
 
   return (
@@ -94,7 +106,7 @@ export function CollegeManagementSection({
         <div className="flex justify-between items-center gap-3">
           <div>
             <h3 className="text-2xl font-headline font-bold text-primary">{title}</h3>
-            <p className="text-sm text-muted-foreground font-literata">{description}</p>
+            <p className="text-sm text-muted-foreground font-body">{description}</p>
           </div>
           <div className="flex gap-2">
             <NewRequestDialog
@@ -123,13 +135,14 @@ export function CollegeManagementSection({
                 <TableHead className="text-center">SOPs</TableHead>
                 <TableHead className="text-center">LORs</TableHead>
                 <TableHead>Notes</TableHead>
+                <TableHead>Relevant Links</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {applications.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="py-12 text-center text-muted-foreground italic">
+                  <TableCell colSpan={8} className="py-12 text-center text-muted-foreground italic">
                     {emptyMessage}
                   </TableCell>
                 </TableRow>
@@ -169,6 +182,30 @@ export function CollegeManagementSection({
                       <TableCell className="max-w-xs text-sm text-muted-foreground">
                         <span className="line-clamp-2">{app.description || "No shortlist notes provided."}</span>
                       </TableCell>
+                      <TableCell className="max-w-xs text-sm text-muted-foreground">
+                        {app.relevantLinks.length === 0 ? (
+                          <span>No links added.</span>
+                        ) : (
+                          <div className="flex flex-col gap-1">
+                            {app.relevantLinks.slice(0, 2).map((link) => (
+                              <a
+                                key={link}
+                                href={link}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="truncate text-primary hover:underline"
+                              >
+                                {link}
+                              </a>
+                            ))}
+                            {app.relevantLinks.length > 2 && (
+                              <span className="text-xs text-muted-foreground">
+                                +{app.relevantLinks.length - 2} more link(s)
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </TableCell>
                       <TableCell className="text-right">
                         <div className="flex flex-wrap justify-end gap-2">
                           <Button asChild variant="default" size="sm" className="bg-primary text-primary-foreground">
@@ -196,18 +233,31 @@ export function CollegeManagementSection({
                           <Button
                             variant="outline"
                             size="sm"
-                            className="border-blue-500 text-blue-600 hover:bg-blue-50"
+                            className="border-info/50 text-info hover:bg-info/15"
+                            disabled={sharingApplicationId === app.id || deletingApplicationId === app.id}
                             onClick={() => void handleShareShortlist(app.id)}
                           >
-                            <Share2 className="mr-2 h-4 w-4" />
-                            Share
+                            {sharingApplicationId === app.id ? (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                              <Share2 className="mr-2 h-4 w-4" />
+                            )}
+                            {sharingApplicationId === app.id ? "Sharing..." : "Share"}
                           </Button>
-                          <button
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => void handleDeleteApplication(app.id)}
-                            className="text-xs text-destructive hover:underline font-bold px-2"
+                            disabled={deletingApplicationId === app.id || sharingApplicationId === app.id}
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
                           >
-                            Remove
-                          </button>
+                            {deletingApplicationId === app.id ? (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="mr-2 h-4 w-4" />
+                            )}
+                            {deletingApplicationId === app.id ? "Removing..." : "Remove"}
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>

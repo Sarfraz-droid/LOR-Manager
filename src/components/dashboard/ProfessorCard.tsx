@@ -41,7 +41,7 @@ export function ProfessorCard({ professor, onDelete, index = 0 }: ProfessorCardP
         <p className="text-sm font-medium mb-2">Expertise: {professor.expertise}</p>
         <div className="flex flex-wrap gap-1 mt-3">
           {professor.courses.map((course, idx) => (
-            <Badge key={idx} variant="secondary" className="text-[10px] font-literata">
+            <Badge key={idx} variant="secondary" className="text-[10px] font-body">
               {course}
             </Badge>
           ))}

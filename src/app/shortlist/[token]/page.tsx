@@ -12,6 +12,7 @@ type SharedShortlistRow = {
   program: string | null;
   deadline: string | null;
   description: string | null;
+  relevant_links: string[] | null;
 };
 
 type SharedSopRow = {
@@ -55,6 +56,7 @@ async function getShortlistData(token: string) {
       program: typeof shortlist.program === "string" ? shortlist.program : "Program",
       deadline: typeof shortlist.deadline === "string" ? shortlist.deadline : "",
       description: typeof shortlist.description === "string" ? shortlist.description : "",
+      relevantLinks: shortlist.relevant_links ?? [],
     },
     sops: shortlistSops.map((sop) => ({
       id: String(sop.id),

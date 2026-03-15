@@ -23,6 +23,7 @@ create table if not exists university_applications (
   program       text not null,
   deadline      text not null,
   description   text not null default '',
+  relevant_links jsonb not null default '[]'::jsonb,
   share_token   text unique
 );
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { format } from "date-fns";
-import { BookOpen, Calendar, Eye, FileText, GraduationCap, User } from "lucide-react";
+import { BookOpen, Calendar, Eye, FileText, GraduationCap, Link2, User } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ interface SharedShortlistData {
     program: string;
     deadline: string;
     description: string;
+    relevantLinks: string[];
   };
   sops: Array<{
     id: string;
@@ -34,14 +35,14 @@ interface SharedShortlistData {
 
 export function ShortlistShareView({ token, shortlist, sops, lors }: SharedShortlistData) {
   return (
-    <div className="min-h-screen bg-[#fafafa] px-4 py-12">
+    <div className="min-h-screen bg-background px-4 py-12">
       <div className="mx-auto max-w-5xl space-y-6">
-        <Card className="border-accent/20 shadow-lg">
+        <Card className="border-border/70 bg-card/95 shadow-lg shadow-black/20">
           <CardHeader className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="space-y-2">
                 <div className="flex items-center gap-3">
-                  <div className="rounded-xl bg-primary/10 p-3">
+                  <div className="rounded-xl bg-primary/15 p-3">
                     <GraduationCap className="h-6 w-6 text-primary" />
                   </div>
                   <div>
@@ -58,11 +59,27 @@ export function ShortlistShareView({ token, shortlist, sops, lors }: SharedShort
             <p className="text-sm text-muted-foreground">
               {shortlist.description || "This shared shortlist does not include any additional notes."}
             </p>
+            {shortlist.relevantLinks.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {shortlist.relevantLinks.map((link) => (
+                  <a
+                    key={link}
+                    href={link}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 rounded-full border border-primary/30 px-3 py-1 text-xs text-primary hover:bg-primary/10"
+                  >
+                    <Link2 className="h-3.5 w-3.5" />
+                    {link}
+                  </a>
+                ))}
+              </div>
+            )}
           </CardHeader>
         </Card>
 
         <div className="grid gap-6 lg:grid-cols-2">
-          <Card className="border-accent/20">
+          <Card className="border-border/70 bg-card/95">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <FileText className="h-5 w-5 text-accent" />
@@ -72,7 +89,7 @@ export function ShortlistShareView({ token, shortlist, sops, lors }: SharedShort
             <CardContent>
               <div className="rounded-md border border-accent/10 overflow-hidden">
                 <Table>
-                  <TableHeader className="bg-muted/30">
+                  <TableHeader className="bg-surface-1/60">
                     <TableRow>
                       <TableHead>Program</TableHead>
                       <TableHead>Status</TableHead>
@@ -106,7 +123,7 @@ export function ShortlistShareView({ token, shortlist, sops, lors }: SharedShort
                              <Button
                               variant="ghost"
                               size="sm"
-                              className="h-8 w-8 p-0"
+                              className="h-9 w-9 rounded-full hover:bg-secondary/70"
                               asChild
                               aria-label={`View SOP for ${sop.program}`}
                             >
@@ -124,7 +141,7 @@ export function ShortlistShareView({ token, shortlist, sops, lors }: SharedShort
             </CardContent>
           </Card>
 
-          <Card className="border-accent/20">
+          <Card className="border-border/70 bg-card/95">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <BookOpen className="h-5 w-5 text-accent" />
@@ -134,7 +151,7 @@ export function ShortlistShareView({ token, shortlist, sops, lors }: SharedShort
             <CardContent>
               <div className="rounded-md border border-accent/10 overflow-hidden">
                 <Table>
-                  <TableHeader className="bg-muted/30">
+                  <TableHeader className="bg-surface-1/60">
                     <TableRow>
                       <TableHead>Professor</TableHead>
                       <TableHead>Status</TableHead>
@@ -171,7 +188,7 @@ export function ShortlistShareView({ token, shortlist, sops, lors }: SharedShort
                              <Button
                               variant="ghost"
                               size="sm"
-                              className="h-8 w-8 p-0"
+                              className="h-9 w-9 rounded-full hover:bg-secondary/70"
                               asChild
                               aria-label={`View LOR from ${lor.professorName}`}
                             >

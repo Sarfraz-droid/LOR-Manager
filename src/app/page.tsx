@@ -1,151 +1,92 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
-import Link from "next/link";
+import { useState } from "react";
+import { BookOpen, Building2, GraduationCap, LogOut, Menu, X } from "lucide-react";
+import { motion } from "motion/react";
 import { useLoRStore } from "@/lib/store";
 import { useSopStore } from "@/lib/sopStore";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ProfessorCard } from "@/components/dashboard/ProfessorCard";
-import { LoRRequestRow } from "@/components/dashboard/LoRRequestRow";
-import { SopRow } from "@/components/dashboard/SopRow";
-import { Table, TableBody, TableHeader, TableHead, TableRow, TableCell } from "@/components/ui/table";
-import { NewProfessorDialog } from "@/components/dashboard/NewProfessorDialog";
-import { NewRequestDialog } from "@/components/dashboard/NewRequestDialog";
-import { AISuggestionTool } from "@/components/dashboard/AISuggestionTool";
-import { LoREditor } from "@/components/dashboard/LoREditor";
-import { SopEditor } from "@/components/dashboard/SopEditor";
-import { CollegeManagementSection } from "@/components/dashboard/CollegeManagementSection";
-import { GraduationCap, ClipboardList, BookOpen, Sparkles, LayoutDashboard, AlertTriangle, ScrollText, LogOut, Menu, X, Filter, Building2 } from "lucide-react";
-import { LoRRequest, SopEntry } from "@/lib/types";
+import type { LoRRequest, SopEntry } from "@/lib/types";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { LandingPage } from "@/components/landing/LandingPage";
+import { CollegeManagementSection } from "@/components/dashboard/CollegeManagementSection";
+import { ProfessorCard } from "@/components/dashboard/ProfessorCard";
+import { NewProfessorDialog } from "@/components/dashboard/NewProfessorDialog";
+import { LoREditor } from "@/components/dashboard/LoREditor";
+import { SopEditor } from "@/components/dashboard/SopEditor";
+import { GeminiKeyDialog } from "@/components/dashboard/GeminiKeyDialog";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
 import { useGeminiKey } from "@/hooks/use-gemini-key";
-import { GeminiKeyDialog } from "@/components/dashboard/GeminiKeyDialog";
-
 import { cn } from "@/lib/utils";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { motion } from "motion/react";
-
 
 export default function Home() {
-  const { 
+  const {
     user,
     authLoading,
-    professors, 
-    applications, 
+    professors,
+    applications,
     requests,
     isLoading,
     signIn,
     signUp,
     signInWithGoogle,
     signOut,
-    addProfessor, 
-    addRequest, 
+    addProfessor,
+    addRequest,
     addApplication,
-    updateRequestStatus,
     updateRequestContent,
-    markReminded,
     generateShareToken,
     generateApplicationShareToken,
-    deleteProfessor,
     deleteApplication,
-    deleteRequest,
+      deleteProfessor,
   } = useLoRStore();
 
   const {
     sops,
     isLoading: isSopLoading,
     addSop,
-    updateSopStatus,
     updateSopContent,
-    deleteSop,
     removeSopsForApplication,
   } = useSopStore(user?.id ?? null);
 
   const { toast } = useToast();
   const { geminiKey, setGeminiKey } = useGeminiKey();
   const [showAuth, setShowAuth] = useState<"landing" | "signin" | "signup">("landing");
-  const [activeTab, setActiveTab] = useState("requests");
   const [editingRequest, setEditingRequest] = useState<LoRRequest | null>(null);
   const [editingSop, setEditingSop] = useState<SopEntry | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [filterUniversity, setFilterUniversity] = useState<string>("all");
-  const [filterProfessor, setFilterProfessor] = useState<string>("all");
-  const filteredRequests = useMemo(() => requests.filter(req => {
-    const app = applications.find(a => a.id === req.applicationId);
-    const uniMatch = filterUniversity === "all" || app?.university === filterUniversity;
-    const profMatch = filterProfessor === "all" || req.professorId === filterProfessor;
-    return uniMatch && profMatch;
-  }), [requests, applications, filterUniversity, filterProfessor]);
-  // Track which request IDs have already triggered a reminder this session so
-  // the effect never fires toast/markReminded twice for the same request even
-  // while the async markReminded call is still in-flight.
-  const remindedRef = useRef<Set<string>>(new Set());
-
-  const pendingCount = requests.filter(r => r.status !== "Submitted").length;
-
-  // Automated reminders for the student
-  useEffect(() => {
-    const urgentRequests = requests.filter(req => {
-      if (req.status === "Submitted" || req.reminderSent || remindedRef.current.has(req.id)) return false;
-      const deadlineDate = new Date(req.deadline);
-      const today = new Date();
-      const diffTime = deadlineDate.getTime() - today.getTime();
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      return diffDays <= 7 && diffDays >= 0;
-    });
-
-    if (urgentRequests.length > 0) {
-      urgentRequests.forEach(req => {
-        remindedRef.current.add(req.id);
-        const app = applications.find(a => a.id === req.applicationId);
-        toast({
-          title: "Personal Deadline Reminder",
-          description: `The application for ${app?.university || 'an institution'} is due in less than a week!`,
-          variant: "destructive",
-        });
-        markReminded(req.id);
-      });
-    }
-  }, [requests, applications, toast, markReminded]);
+    const [activeTab, setActiveTab] = useState<"colleges" | "professors">("colleges");
 
   const handleSaveLoR = (content: string) => {
-    if (editingRequest) {
-      updateRequestContent(editingRequest.id, content);
-      toast({
-        title: "Draft Saved",
-        description: "Your letter of recommendation has been saved to your dashboard.",
-      });
-    }
+    if (!editingRequest) return;
+    updateRequestContent(editingRequest.id, content);
+    toast({
+      title: "Draft Saved",
+      description: "Your letter of recommendation has been saved to your dashboard.",
+    });
   };
 
   const handleSaveSop = (content: string) => {
-    if (editingSop) {
-      updateSopContent(editingSop.id, content);
-      toast({
-        title: "SOP Saved",
-        description: "Your Statement of Purpose has been saved to your dashboard.",
-      });
-    }
+    if (!editingSop) return;
+    updateSopContent(editingSop.id, content);
+    toast({
+      title: "SOP Saved",
+      description: "Your Statement of Purpose has been saved to your dashboard.",
+    });
   };
 
-  // Show a full-screen spinner while checking existing auth session
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-accent border-t-transparent" />
-          <p className="text-sm text-muted-foreground font-medium">Loading…</p>
+          <p className="text-sm text-muted-foreground font-medium">Loading...</p>
         </div>
       </div>
     );
   }
 
-  // Show auth form when not signed in
   if (!user) {
     if (showAuth === "landing") {
       return (
@@ -158,10 +99,16 @@ export default function Home() {
         </>
       );
     }
+
     return (
       <>
         <Toaster />
-        <AuthForm onSignIn={signIn} onSignUp={signUp} onSignInWithGoogle={signInWithGoogle} initialMode={showAuth === "signup" ? "signup" : "signin"} />
+        <AuthForm
+          onSignIn={signIn}
+          onSignUp={signUp}
+          onSignInWithGoogle={signInWithGoogle}
+          initialMode={showAuth === "signup" ? "signup" : "signin"}
+        />
       </>
     );
   }
@@ -174,16 +121,16 @@ export default function Home() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
           <div className="flex flex-col items-center gap-3">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-accent border-t-transparent" />
-            <p className="text-sm text-muted-foreground font-medium">Loading data…</p>
+            <p className="text-sm text-muted-foreground font-medium">Loading data...</p>
           </div>
         </div>
       )}
-      
+
       {editingRequest && (
-        <LoREditor 
+        <LoREditor
           request={editingRequest}
-          professor={professors.find(p => p.id === editingRequest.professorId)}
-          application={applications.find(a => a.id === editingRequest.applicationId)}
+          professor={professors.find((entry) => entry.id === editingRequest.professorId)}
+          application={applications.find((entry) => entry.id === editingRequest.applicationId)}
           onSave={handleSaveLoR}
           onClose={() => setEditingRequest(null)}
           onShare={generateShareToken}
@@ -200,31 +147,28 @@ export default function Home() {
         />
       )}
 
-      {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-30 bg-black/50 md:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
+        <div className="fixed inset-0 z-30 bg-black/50 md:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
-      {/* Sidebar Navigation */}
-      <aside className={cn(
-        "fixed inset-y-0 left-0 z-40 w-64 bg-primary text-primary-foreground p-6 flex flex-col gap-8 shadow-xl",
-        "transition-transform duration-300 ease-in-out",
-        "md:relative md:translate-x-0 md:inset-auto md:z-auto",
-        sidebarOpen ? "translate-x-0" : "-translate-x-full"
-      )}>
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-40 w-64 bg-surface-1/90 text-foreground p-6 flex flex-col gap-8 border-r border-border/80 shadow-2xl backdrop-blur-xl",
+          "transition-transform duration-300 ease-in-out",
+          "md:relative md:translate-x-0 md:inset-auto md:z-auto",
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        )}
+      >
         <div className="flex items-center gap-3">
-          <div className="bg-accent p-2 rounded-lg">
+          <div className="bg-primary p-2 rounded-lg shadow-lg shadow-primary/20">
             <BookOpen className="h-6 w-6 text-accent-foreground" />
           </div>
           <div>
-            <h1 className="text-xl font-headline font-bold leading-none">LoR Tracker</h1>
-            <span className="text-[10px] uppercase tracking-widest font-bold text-accent">Professional Edition</span>
+            <h1 className="text-xl font-headline font-semibold leading-none tracking-wide">LoR Tracker</h1>
+            <span className="text-[10px] uppercase tracking-[0.25em] font-semibold text-accent">College First</span>
           </div>
           <button
-            className="ml-auto md:hidden text-primary-foreground/70 hover:text-primary-foreground"
+            className="ml-auto md:hidden text-muted-foreground hover:text-foreground"
             onClick={() => setSidebarOpen(false)}
             aria-label="Close menu"
           >
@@ -233,49 +177,31 @@ export default function Home() {
         </div>
 
         <nav className="flex flex-col gap-2">
-          <div className="text-[10px] uppercase font-bold text-primary-foreground/50 mb-2">Overview</div>
+          <div className="text-[10px] uppercase font-semibold tracking-[0.24em] text-muted-foreground mb-2">Main</div>
           <button
-            onClick={() => { setActiveTab("requests"); setSidebarOpen(false); }}
-            className={`flex items-center gap-3 px-3 py-2 rounded-md w-full text-left transition-colors ${activeTab === "requests" ? "bg-white/10" : "hover:bg-white/5"}`}
-          >
-            <LayoutDashboard className="h-4 w-4" />
-            <span className="text-sm font-medium">Dashboard</span>
-          </button>
-          <button
-            onClick={() => { setActiveTab("sop"); setSidebarOpen(false); }}
-            className={`flex items-center gap-3 px-3 py-2 rounded-md w-full text-left transition-colors ${activeTab === "sop" ? "bg-white/10" : "hover:bg-white/5"}`}
-          >
-            <ScrollText className="h-4 w-4" />
-            <span className="text-sm font-medium">SOP Manager</span>
-          </button>
-          <div className="text-[10px] uppercase font-bold text-primary-foreground/50 mb-2 mt-4">College</div>
-          <Link
-            href="/colleges"
-            className="flex items-center gap-3 px-3 py-2 rounded-md w-full text-left transition-colors hover:bg-white/5"
-            onClick={() => setSidebarOpen(false)}
+            onClick={() => { setActiveTab("colleges"); setSidebarOpen(false); }}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg w-full text-left transition-colors ${activeTab === "colleges" ? "bg-primary/20 text-primary" : "hover:bg-secondary/70"}`}
           >
             <Building2 className="h-4 w-4" />
-            <span className="text-sm font-medium">College Management</span>
-          </Link>
+            <span className="text-sm font-medium">College List</span>
+          </button>
+            <button
+              onClick={() => { setActiveTab("professors"); setSidebarOpen(false); }}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg w-full text-left transition-colors ${activeTab === "professors" ? "bg-primary/20 text-primary" : "hover:bg-secondary/70"}`}
+            >
+              <GraduationCap className="h-4 w-4" />
+              <span className="text-sm font-medium">Professors</span>
+            </button>
         </nav>
 
         <div className="mt-auto flex flex-col gap-3">
-          <div className="p-4 bg-accent/20 rounded-xl border border-accent/30">
-            <div className="flex items-center gap-2 mb-2">
-              <AlertTriangle className="h-4 w-4 text-accent" />
-              <span className="text-xs font-bold uppercase">Personal Alerts</span>
-            </div>
-            <div className="text-3xl font-headline font-bold text-accent">{pendingCount}</div>
-            <p className="text-[10px] text-primary-foreground/70 mt-1">Review your upcoming deadlines!</p>
-          </div>
-
           <div className="px-1">
-            <p className="text-[10px] text-primary-foreground/50 truncate mb-2">{user.email}</p>
+            <p className="text-[10px] text-muted-foreground truncate mb-2">{user.email}</p>
             <GeminiKeyDialog geminiKey={geminiKey} onSave={setGeminiKey} />
             <Button
               variant="outline"
               size="sm"
-              className="w-full text-primary-foreground border-primary-foreground/30 hover:bg-white/10 hover:text-primary-foreground bg-transparent mt-1"
+              className="w-full border-border/80 hover:bg-secondary/80 bg-transparent mt-1"
               onClick={signOut}
             >
               <LogOut className="h-4 w-4 mr-2" />
@@ -285,7 +211,6 @@ export default function Home() {
         </div>
       </aside>
 
-      {/* Main Content Area */}
       <main className="flex-1 p-4 md:p-8 overflow-y-auto min-w-0">
         <motion.header
           initial={{ opacity: 0, y: -16 }}
@@ -293,7 +218,6 @@ export default function Home() {
           transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
           className="mb-8"
         >
-          {/* Mobile top bar */}
           <div className="flex items-center gap-3 mb-4 md:hidden">
             <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)} aria-label="Open menu">
               <Menu className="h-6 w-6" />
@@ -302,226 +226,58 @@ export default function Home() {
               <div className="bg-primary p-1.5 rounded-md">
                 <BookOpen className="h-4 w-4 text-primary-foreground" />
               </div>
-              <span className="text-lg font-headline font-bold text-primary">LoR Tracker</span>
+              <span className="text-lg font-headline font-semibold text-primary">LoR Tracker</span>
             </div>
           </div>
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-            <div>
-              <h2 className="text-2xl md:text-4xl font-headline font-bold text-primary">Academic Portfolio</h2>
-              <p className="text-muted-foreground font-literata text-sm md:text-base">Manage your letters of recommendation, SOPs, and college shortlists in one place.</p>
-            </div>
-            <div className="flex gap-2">
-              <NewRequestDialog
-                professors={professors}
-                applications={applications}
-                onAdd={addRequest}
-              />
-            </div>
+
+          <div>
+            <h2 className="text-2xl md:text-4xl font-headline font-semibold text-primary">College Workspace</h2>
+            <p className="text-muted-foreground font-body text-sm md:text-base">
+              Start with the college list, then attach SOPs and LORs for each shortlist.
+            </p>
           </div>
         </motion.header>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="bg-muted/50 p-1 h-auto mb-8 grid grid-cols-3 md:grid-cols-5 gap-1">
-            <TabsTrigger value="requests" className="data-[state=active]:bg-white py-2 text-xs sm:text-sm">
-              <ClipboardList className="h-4 w-4 sm:mr-2 shrink-0" /><span className="hidden sm:inline">Requests</span>
-            </TabsTrigger>
-            <TabsTrigger value="sop" className="data-[state=active]:bg-white py-2 text-xs sm:text-sm">
-              <ScrollText className="h-4 w-4 sm:mr-2 shrink-0" /><span className="hidden sm:inline">SOP Manager</span>
-            </TabsTrigger>
-            <TabsTrigger value="professors" className="data-[state=active]:bg-white py-2 text-xs sm:text-sm">
-              <GraduationCap className="h-4 w-4 sm:mr-2 shrink-0" /><span className="hidden sm:inline">Professors</span>
-            </TabsTrigger>
-            <TabsTrigger value="applications" className="data-[state=active]:bg-white py-2 text-xs sm:text-sm">
-              <Building2 className="h-4 w-4 sm:mr-2 shrink-0" /><span className="hidden sm:inline">Colleges</span>
-            </TabsTrigger>
-            <TabsTrigger value="ai" className="data-[state=active]:bg-white py-2 text-xs sm:text-sm">
-              <Sparkles className="h-4 w-4 sm:mr-2 shrink-0" /><span className="hidden sm:inline">AI Suggestion</span>
-            </TabsTrigger>
-          </TabsList>
+        {activeTab === "colleges" && (
+          <CollegeManagementSection
+          applications={applications}
+          requests={requests}
+          sops={sops}
+          professors={professors}
+          addApplication={addApplication}
+          addRequest={addRequest}
+          addSop={addSop}
+          deleteApplication={deleteApplication}
+          removeSopsForApplication={removeSopsForApplication}
+          generateApplicationShareToken={generateApplicationShareToken}
+          onOpenSop={setEditingSop}
+          onOpenLor={setEditingRequest}
+          title="College List"
+          description="Add your colleges first, then create SOP and LOR items from each college row."
+          emptyMessage="No colleges tracked yet. Add a college to start building SOP and LOR items."
+          />
+        )}
 
-          <TabsContent value="requests" className="space-y-4 animate-in fade-in duration-300">
-            <Card className="border-none shadow-sm">
-              <CardHeader className="flex flex-col space-y-3">
-                <div className="flex flex-row items-center justify-between space-y-0">
-                  <div>
-                    <CardTitle className="text-2xl">Letter Tracking</CardTitle>
-                    <CardDescription>Monitor the status of your requested letters.</CardDescription>
-                  </div>
-                </div>
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Filter className="h-4 w-4" />
-                    <span>Filter by:</span>
-                  </div>
-                  <Select value={filterUniversity} onValueChange={setFilterUniversity}>
-                    <SelectTrigger className="w-48">
-                      <SelectValue placeholder="University" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Universities</SelectItem>
-                      {Array.from(new Set(applications.map(a => a.university))).sort().map(uni => (
-                        <SelectItem key={uni} value={uni}>{uni}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Select value={filterProfessor} onValueChange={setFilterProfessor}>
-                    <SelectTrigger className="w-48">
-                      <SelectValue placeholder="Professor" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Professors</SelectItem>
-                      {professors.map(p => (
-                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {(filterUniversity !== "all" || filterProfessor !== "all") && (
-                    <button
-                      onClick={() => { setFilterUniversity("all"); setFilterProfessor("all"); }}
-                      className="text-xs text-muted-foreground hover:text-foreground underline"
-                    >
-                      Clear filters
-                    </button>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="rounded-md border border-accent/10 overflow-x-auto">
-                  <Table>
-                    <TableHeader className="bg-muted/30">
-                      <TableRow>
-                        <TableHead>Professor</TableHead>
-                        <TableHead>Shortlist</TableHead>
-                        <TableHead>Deadline</TableHead>
-                        <TableHead>Action</TableHead>
-                        <TableHead className="text-right">Status</TableHead>
-                        <TableHead></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {requests.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={6} className="text-center py-12 text-muted-foreground italic">
-                            No requests logged yet. Start by adding a professor and a college shortlist.
-                          </TableCell>
-                        </TableRow>
-                      ) : filteredRequests.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={6} className="text-center py-12 text-muted-foreground italic">
-                            No requests match the selected filters.
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        filteredRequests.map((req, idx) => (
-                          <LoRRequestRow
-                            key={req.id}
-                            request={req}
-                            index={idx}
-                            onStatusChange={updateRequestStatus}
-                            onWrite={setEditingRequest}
-                            onDelete={deleteRequest}
-                            professor={professors.find(p => p.id === req.professorId)}
-                            application={applications.find(a => a.id === req.applicationId)}
-                          />
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="sop" className="space-y-4 animate-in fade-in duration-300">
-            <Card className="border-none shadow-sm">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0">
+          {activeTab === "professors" && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center gap-3">
                 <div>
-                  <CardTitle className="text-2xl">SOP Manager</CardTitle>
-                  <CardDescription>Draft and track your Statements of Purpose for different colleges and shortlists.</CardDescription>
+                  <h3 className="text-2xl font-headline font-semibold text-primary">Professors</h3>
+                  <p className="text-sm text-muted-foreground font-body">Manage the professors you are requesting letters from.</p>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="rounded-md border border-accent/10 overflow-x-auto">
-                  <Table>
-                    <TableHeader className="bg-muted/30">
-                      <TableRow>
-                        <TableHead>College</TableHead>
-                        <TableHead>Program</TableHead>
-                        <TableHead>Deadline</TableHead>
-                        <TableHead>Action</TableHead>
-                        <TableHead className="text-right">Status</TableHead>
-                        <TableHead></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {sops.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={6} className="text-center py-12 text-muted-foreground italic">
-                            No SOPs added yet. Click &quot;New SOP&quot; to get started.
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        sops.map((sop, idx) => (
-                          <SopRow
-                            key={sop.id}
-                            sop={sop}
-                            index={idx}
-                            onStatusChange={updateSopStatus}
-                            onWrite={setEditingSop}
-                            onDelete={deleteSop}
-                          />
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="professors" className="space-y-6 animate-in fade-in duration-300">
-            <div className="flex justify-between items-center">
-              <div>
-                <h3 className="text-2xl font-headline font-bold text-primary">Faculty Network</h3>
-                <p className="text-sm text-muted-foreground font-literata">Maintain contact details and areas of expertise for your recommenders.</p>
+                <NewProfessorDialog onAdd={addProfessor} />
               </div>
-              <NewProfessorDialog onAdd={addProfessor} />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {professors.map((prof, idx) => (
-                <ProfessorCard key={prof.id} professor={prof} index={idx} onDelete={deleteProfessor} />
-              ))}
-              {professors.length === 0 && (
-                <div className="col-span-full py-12 text-center border-2 border-dashed rounded-xl bg-muted/20">
-                  <p className="text-muted-foreground">You haven&apos;t added any professor profiles yet.</p>
+              {professors.length === 0 ? (
+                <p className="text-center text-muted-foreground italic py-12">No professors added yet.</p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {professors.map((professor, idx) => (
+                    <ProfessorCard key={professor.id} professor={professor} onDelete={deleteProfessor} index={idx} />
+                  ))}
                 </div>
               )}
             </div>
-          </TabsContent>
-
-          <TabsContent value="applications" className="space-y-6 animate-in fade-in duration-300">
-            <CollegeManagementSection
-              applications={applications}
-              requests={requests}
-              sops={sops}
-              professors={professors}
-              addApplication={addApplication}
-              addRequest={addRequest}
-              addSop={addSop}
-              deleteApplication={deleteApplication}
-              removeSopsForApplication={removeSopsForApplication}
-              generateApplicationShareToken={generateApplicationShareToken}
-              onOpenSop={setEditingSop}
-              onOpenLor={setEditingRequest}
-            />
-          </TabsContent>
-
-          <TabsContent value="ai" className="animate-in fade-in duration-300">
-            <div className="max-w-3xl mx-auto">
-              <AISuggestionTool professors={professors} geminiKey={geminiKey} />
-            </div>
-          </TabsContent>
-        </Tabs>
+          )}
       </main>
     </div>
   );

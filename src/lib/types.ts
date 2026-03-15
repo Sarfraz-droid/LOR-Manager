@@ -12,6 +12,7 @@ export type UniversityApplication = {
   program: string;
   deadline: string;
   description: string;
+  relevantLinks: string[];
   shareToken?: string;
 };
 

@@ -2,13 +2,16 @@
 -- through explicit security definer RPC helpers instead of depending on table
 -- select policies alone.
 
+drop function if exists public.get_shared_shortlist(text);
+
 create or replace function public.get_shared_shortlist(share_token_input text)
 returns table (
   id text,
   university text,
   program text,
   deadline text,
-  description text
+  description text,
+  relevant_links jsonb
 )
 language sql
 security definer
@@ -20,7 +23,8 @@ as $$
     university_applications.university,
     university_applications.program,
     university_applications.deadline,
-    university_applications.description
+    university_applications.description,
+    university_applications.relevant_links
   from public.university_applications
   where university_applications.share_token = share_token_input
   limit 1;

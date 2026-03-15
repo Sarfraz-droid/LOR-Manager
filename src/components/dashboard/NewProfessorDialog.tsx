@@ -5,11 +5,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PlusCircle } from "lucide-react";
+import { Loader2, PlusCircle } from "lucide-react";
 import { Professor } from "@/lib/types";
 
-export function NewProfessorDialog({ onAdd }: { onAdd: (p: Professor) => void }) {
+export function NewProfessorDialog({ onAdd }: { onAdd: (p: Professor) => void | Promise<void> }) {
   const [open, setOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -17,17 +18,22 @@ export function NewProfessorDialog({ onAdd }: { onAdd: (p: Professor) => void })
     courses: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onAdd({
-      id: Math.random().toString(36).substr(2, 9),
-      name: formData.name,
-      email: formData.email,
-      expertise: formData.expertise,
-      courses: formData.courses.split(",").map(c => c.trim()).filter(c => c !== ""),
-    });
-    setFormData({ name: "", email: "", expertise: "", courses: "" });
-    setOpen(false);
+    try {
+      setIsSubmitting(true);
+      await onAdd({
+        id: Math.random().toString(36).substr(2, 9),
+        name: formData.name,
+        email: formData.email,
+        expertise: formData.expertise,
+        courses: formData.courses.split(",").map(c => c.trim()).filter(c => c !== ""),
+      });
+      setFormData({ name: "", email: "", expertise: "", courses: "" });
+      setOpen(false);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -59,7 +65,10 @@ export function NewProfessorDialog({ onAdd }: { onAdd: (p: Professor) => void })
             <Input id="courses" value={formData.courses} onChange={(e) => setFormData({...formData, courses: e.target.value})} placeholder="CHM101, CHM405" />
           </div>
           <DialogFooter>
-            <Button type="submit" className="bg-accent text-accent-foreground">Save Profile</Button>
+            <Button type="submit" className="bg-accent text-accent-foreground" disabled={isSubmitting}>
+              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {isSubmitting ? "Saving..." : "Save Profile"}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

@@ -71,7 +71,7 @@ export function TiptapEditor({ content, onChange, placeholder }: TiptapEditorPro
     editorProps: {
       attributes: {
         class:
-          "prose prose-slate max-w-none font-literata text-lg leading-relaxed text-primary focus:outline-none min-h-[600px] p-0",
+          "prose prose-slate max-w-none font-body text-lg leading-relaxed text-foreground focus:outline-none min-h-[600px] p-0",
       },
     },
     immediatelyRender: false,
@@ -188,7 +188,7 @@ export function TiptapEditor({ content, onChange, placeholder }: TiptapEditorPro
         onClick={() => editor.commands.focus()}
       >
         {editor.isEmpty && placeholder && (
-          <p className="absolute top-0 left-0 text-muted-foreground/30 text-lg font-literata pointer-events-none select-none">
+          <p className="absolute top-0 left-0 text-muted-foreground/40 text-lg font-body pointer-events-none select-none">
             {placeholder}
           </p>
         )}

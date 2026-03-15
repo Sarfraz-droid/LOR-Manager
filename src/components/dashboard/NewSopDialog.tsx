@@ -6,11 +6,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PlusCircle } from "lucide-react";
+import { Loader2, PlusCircle } from "lucide-react";
 import { SopEntry, UniversityApplication } from "@/lib/types";
 
 interface NewSopDialogProps {
-  onAdd: (s: SopEntry) => void;
+  onAdd: (s: SopEntry) => void | Promise<void>;
   initialApplication?: UniversityApplication | null;
   onInitialApplicationHandled?: () => void;
   autoOpenOnInitialApplication?: boolean;
@@ -25,6 +25,7 @@ export function NewSopDialog({
   children,
 }: NewSopDialogProps) {
   const [open, setOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     college: "",
     program: "",
@@ -47,19 +48,24 @@ export function NewSopDialog({
     }
   }, [autoOpenOnInitialApplication, initialApplication, onInitialApplicationHandled]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onAdd({
-      id: Math.random().toString(36).substr(2, 9),
-      college: formData.college,
-      program: formData.program,
-      deadline: formData.deadline,
-      applicationId: formData.applicationId || undefined,
-      status: "Draft",
-      content: "",
-    });
-    setFormData({ college: "", program: "", deadline: "", applicationId: "" });
-    setOpen(false);
+    try {
+      setIsSubmitting(true);
+      await onAdd({
+        id: Math.random().toString(36).substr(2, 9),
+        college: formData.college,
+        program: formData.program,
+        deadline: formData.deadline,
+        applicationId: formData.applicationId || undefined,
+        status: "Draft",
+        content: "",
+      });
+      setFormData({ college: "", program: "", deadline: "", applicationId: "" });
+      setOpen(false);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -107,8 +113,9 @@ export function NewSopDialog({
             />
           </div>
           <DialogFooter>
-            <Button type="submit" className="bg-accent text-accent-foreground">
-              Create SOP
+            <Button type="submit" className="bg-accent text-accent-foreground" disabled={isSubmitting}>
+              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {isSubmitting ? "Saving..." : "Create SOP"}
             </Button>
           </DialogFooter>
         </form>

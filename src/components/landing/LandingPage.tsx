@@ -20,6 +20,8 @@ type Props = {
   onSignIn: () => void;
 };
 
+const smoothEase: [number, number, number, number] = [0.22, 1, 0.36, 1];
+
 const features = [
   {
     icon: ClipboardList,
@@ -87,7 +89,7 @@ const fadeUp = {
   visible: (i: number = 0) => ({
     opacity: 1,
     y: 0,
-    transition: { duration: 0.5, delay: i * 0.1, ease: [0.22, 1, 0.36, 1] },
+    transition: { duration: 0.42, delay: i * 0.08, ease: smoothEase },
   }),
 };
 
@@ -99,14 +101,14 @@ export function LandingPage({ onGetStarted, onSignIn }: Props) {
         initial={{ y: -16, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.4, ease: "easeOut" }}
-        className="sticky top-0 z-20 bg-background/90 backdrop-blur border-b border-border"
+        className="sticky top-0 z-20 bg-surface-1/85 backdrop-blur-xl border-b border-border/80"
       >
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="bg-primary p-1.5 rounded-md">
               <BookOpen className="h-4 w-4 text-primary-foreground" />
             </div>
-            <span className="font-headline font-bold text-primary text-lg leading-none">
+            <span className="font-headline font-semibold text-primary text-lg leading-none tracking-wide">
               LoR&nbsp;Tracker&nbsp;Pro
             </span>
           </div>
@@ -130,7 +132,7 @@ export function LandingPage({ onGetStarted, onSignIn }: Props) {
           initial="hidden"
           animate="visible"
           custom={0}
-          className="text-4xl sm:text-5xl font-headline font-bold text-primary leading-tight mb-4 break-words"
+          className="text-4xl sm:text-6xl font-headline font-semibold text-primary leading-tight mb-4 break-words"
         >
           Your Academic Applications, Organized
         </motion.h1>
@@ -139,7 +141,7 @@ export function LandingPage({ onGetStarted, onSignIn }: Props) {
           initial="hidden"
           animate="visible"
           custom={1}
-          className="text-muted-foreground text-base sm:text-lg leading-relaxed mb-8"
+          className="text-muted-foreground text-base sm:text-lg leading-relaxed mb-8 font-body"
         >
           LoR Tracker Pro helps university students manage letters of recommendation, statements
           of purpose, and application deadlines — all in one place.
@@ -163,7 +165,7 @@ export function LandingPage({ onGetStarted, onSignIn }: Props) {
       </section>
 
       {/* Feature grid */}
-      <section className="py-16 px-4 sm:px-6 bg-muted/30">
+      <section className="py-16 px-4 sm:px-6 bg-surface-1/55 border-y border-border/60">
         <div className="max-w-5xl mx-auto">
           <motion.h2
             variants={fadeUp}
@@ -171,7 +173,7 @@ export function LandingPage({ onGetStarted, onSignIn }: Props) {
             whileInView="visible"
             viewport={{ once: true, margin: "-60px" }}
             custom={0}
-            className="text-2xl sm:text-3xl font-headline font-bold text-primary text-center mb-2"
+            className="text-2xl sm:text-3xl font-headline font-semibold text-primary text-center mb-2"
           >
             Everything You Need
           </motion.h2>
@@ -181,7 +183,7 @@ export function LandingPage({ onGetStarted, onSignIn }: Props) {
             whileInView="visible"
             viewport={{ once: true, margin: "-60px" }}
             custom={1}
-            className="text-muted-foreground text-center text-sm sm:text-base mb-10"
+            className="text-muted-foreground text-center text-sm sm:text-base mb-10 font-body"
           >
             Built specifically for graduate &amp; undergraduate applicants.
           </motion.p>
@@ -193,15 +195,14 @@ export function LandingPage({ onGetStarted, onSignIn }: Props) {
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: true, margin: "-40px" }}
-                custom={i * 0.5 + 1}
-                whileHover={{ y: -4, boxShadow: "0 8px 24px rgba(0,0,0,0.10)" }}
-                className="bg-card rounded-xl p-6 border border-border shadow-sm cursor-default"
+                custom={i * 0.3 + 1}
+                className="bg-card/90 rounded-xl p-6 border border-border shadow-lg shadow-black/20 cursor-default"
               >
                 <div className="bg-accent/15 p-2.5 rounded-lg w-fit mb-4">
                   <Icon className="h-5 w-5 text-accent" />
                 </div>
-                <h3 className="font-headline font-semibold text-primary mb-2">{title}</h3>
-                <p className="text-muted-foreground text-sm leading-relaxed">{description}</p>
+                <h3 className="font-headline font-semibold text-primary mb-2 text-xl">{title}</h3>
+                <p className="text-muted-foreground text-sm leading-relaxed font-body">{description}</p>
               </motion.div>
             ))}
           </div>
@@ -216,7 +217,7 @@ export function LandingPage({ onGetStarted, onSignIn }: Props) {
           whileInView="visible"
           viewport={{ once: true, margin: "-60px" }}
           custom={0}
-          className="text-2xl sm:text-3xl font-headline font-bold text-primary text-center mb-10"
+          className="text-2xl sm:text-3xl font-headline font-semibold text-primary text-center mb-10"
         >
           Get Started in Minutes
         </motion.h2>
@@ -231,12 +232,12 @@ export function LandingPage({ onGetStarted, onSignIn }: Props) {
               custom={i * 0.6 + 0.5}
               className="flex gap-4"
             >
-              <div className="flex-shrink-0 h-9 w-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-headline font-bold text-sm">
+              <div className="flex-shrink-0 h-9 w-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-headline font-semibold text-sm">
                 {step}
               </div>
               <div>
                 <h3 className="font-headline font-semibold text-primary">{title}</h3>
-                <p className="text-muted-foreground text-sm mt-0.5">{detail}</p>
+                <p className="text-muted-foreground text-sm mt-0.5 font-body">{detail}</p>
               </div>
             </motion.li>
           ))}
@@ -249,15 +250,10 @@ export function LandingPage({ onGetStarted, onSignIn }: Props) {
         whileInView={{ opacity: 1 }}
         viewport={{ once: true, margin: "-80px" }}
         transition={{ duration: 0.6 }}
-        className="py-16 px-4 sm:px-6 bg-primary text-primary-foreground"
+        className="py-16 px-4 sm:px-6 bg-primary/90 text-primary-foreground border-y border-primary/30"
       >
         <div className="max-w-2xl mx-auto text-center">
-          <motion.div
-            initial={{ scale: 0.6, opacity: 0 }}
-            whileInView={{ scale: 1, opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.1, type: "spring", stiffness: 200 }}
-          >
+          <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ duration: 0.35, delay: 0.1 }}>
             <CheckCircle2 className="h-10 w-10 text-accent mx-auto mb-4" />
           </motion.div>
           <motion.h2
@@ -266,7 +262,7 @@ export function LandingPage({ onGetStarted, onSignIn }: Props) {
             whileInView="visible"
             viewport={{ once: true }}
             custom={1}
-            className="text-2xl sm:text-3xl font-headline font-bold mb-3"
+            className="text-2xl sm:text-3xl font-headline font-semibold mb-3"
           >
             Ready to take control of your applications?
           </motion.h2>
@@ -276,7 +272,7 @@ export function LandingPage({ onGetStarted, onSignIn }: Props) {
             whileInView="visible"
             viewport={{ once: true }}
             custom={2}
-            className="text-primary-foreground/70 text-sm sm:text-base mb-6"
+            className="text-primary-foreground/70 text-sm sm:text-base mb-6 font-body"
           >
             Join students who are already managing their academic journey with LoR Tracker Pro.
           </motion.p>
@@ -301,11 +297,11 @@ export function LandingPage({ onGetStarted, onSignIn }: Props) {
       </motion.section>
 
       {/* Footer */}
-      <footer className="py-6 px-4 sm:px-6 border-t border-border">
+      <footer className="py-6 px-4 sm:px-6 border-t border-border/70 bg-surface-1/40">
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted-foreground">
           <div className="flex items-center gap-1.5">
             <BookOpen className="h-3.5 w-3.5" />
-            <span className="font-bold text-foreground">LoR Tracker Pro</span>
+            <span className="font-semibold text-foreground">LoR Tracker Pro</span>
           </div>
           <span>Built for students, by students.</span>
         </div>

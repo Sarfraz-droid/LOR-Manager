@@ -65,7 +65,7 @@ export function CollegeDashboardDialog({
               <Button
                 variant="outline"
                 size="sm"
-                className="border-blue-500 text-blue-600 hover:bg-blue-50"
+                className="border-info/50 text-info hover:bg-info/15"
                 onClick={onShare}
               >
                 <Share2 className="mr-2 h-4 w-4" />

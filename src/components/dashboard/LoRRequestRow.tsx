@@ -92,7 +92,7 @@ export function LoRRequestRow({ request, professor, application, onStatusChange,
               ? "secondary"
               : "outline"
           }
-          className={request.status === "Submitted" ? "bg-green-600 hover:bg-green-700" : ""}
+          className={request.status === "Submitted" ? "bg-success text-success-foreground hover:bg-success/90" : ""}
         >
           {request.status}
         </Badge>

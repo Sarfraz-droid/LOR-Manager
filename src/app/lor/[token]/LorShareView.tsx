@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Document, Packer, Paragraph, TextRun } from "docx";
 import { saveAs } from "file-saver";
-import { Download, FileText, ChevronDown } from "lucide-react";
+import { Download, FileText, ChevronDown, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { downloadAsPdf } from "@/lib/downloadUtils";
@@ -36,6 +36,7 @@ function stripHtml(html: string): string {
 
 export function LorShareView({ content, professorName, university, program }: LorShareViewProps) {
   const contentRef = useRef<HTMLDivElement>(null);
+  const [exportingFormat, setExportingFormat] = useState<"pdf" | "docx" | null>(null);
 
   // Sanitize and inject HTML content safely via the DOM after mount
   useEffect(() => {
@@ -46,28 +47,39 @@ export function LorShareView({ content, professorName, university, program }: Lo
 
   const isHtml = /<(p|h[1-6]|ul|ol|li|blockquote|br)\b/i.test(content);
 
-  const handleDownloadPdf = () => {
-    downloadAsPdf(content, `LoR_${university}_${professorName}.pdf`);
+  const handleDownloadPdf = async () => {
+    setExportingFormat("pdf");
+    try {
+      downloadAsPdf(content, `LoR_${university}_${professorName}.pdf`);
+      await Promise.resolve();
+    } finally {
+      setExportingFormat(null);
+    }
   };
 
   const handleDownload = async () => {
+    setExportingFormat("docx");
     const plainText = stripHtml(content);
-    const doc = new Document({
-      sections: [{
-        properties: {},
-        children: plainText.split("\n").map((line) =>
-          line.trim()
-            ? new Paragraph({ children: [new TextRun(line)] })
-            : new Paragraph({ children: [] })
-        ),
-      }],
-    });
-    const blob = await Packer.toBlob(doc);
-    saveAs(blob, `LoR_${university}_${professorName}.docx`);
+    try {
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          children: plainText.split("\n").map((line) =>
+            line.trim()
+              ? new Paragraph({ children: [new TextRun(line)] })
+              : new Paragraph({ children: [] })
+          ),
+        }],
+      });
+      const blob = await Packer.toBlob(doc);
+      saveAs(blob, `LoR_${university}_${professorName}.docx`);
+    } finally {
+      setExportingFormat(null);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-[#fafafa] py-12 px-4">
+    <div className="min-h-screen bg-background py-12 px-4">
       <div className="max-w-3xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
@@ -85,18 +97,18 @@ export function LorShareView({ content, professorName, university, program }: Lo
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button className="flex items-center gap-2">
-                <Download className="h-4 w-4" />
-                Download PDF
+              <Button className="flex items-center gap-2" disabled={exportingFormat !== null}>
+                {exportingFormat ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                {exportingFormat === "pdf" ? "Preparing PDF..." : exportingFormat === "docx" ? "Preparing DOCX..." : "Download"}
                 <ChevronDown className="h-3 w-3" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={handleDownloadPdf}>
+              <DropdownMenuItem onClick={() => void handleDownloadPdf()} disabled={exportingFormat !== null}>
                 <Download className="mr-2 h-4 w-4" />
                 Download as PDF
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleDownload}>
+              <DropdownMenuItem onClick={() => void handleDownload()} disabled={exportingFormat !== null}>
                 <FileText className="mr-2 h-4 w-4" />
                 Download as DOCX
               </DropdownMenuItem>
@@ -105,15 +117,15 @@ export function LorShareView({ content, professorName, university, program }: Lo
         </div>
 
         {/* Content */}
-        <div className="bg-white rounded-xl shadow-lg p-8 md:p-12 border border-muted/20 min-h-[60vh]">
+        <div className="bg-card/95 rounded-xl shadow-lg p-8 md:p-12 border border-border/70 min-h-[60vh]">
           {content ? (
             isHtml ? (
               <div
                 ref={contentRef}
-                className="prose prose-slate max-w-none text-foreground"
+                className="prose max-w-none text-foreground prose-headings:text-primary prose-strong:text-primary"
               />
             ) : (
-              <div className="prose prose-slate max-w-none text-foreground">
+              <div className="prose max-w-none text-foreground prose-headings:text-primary prose-strong:text-primary">
                 <ReactMarkdown>{content}</ReactMarkdown>
               </div>
             )

@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Document, Packer, Paragraph, TextRun } from "docx";
 import { saveAs } from "file-saver";
-import { ArrowLeft, Download, FileText, ChevronDown } from "lucide-react";
+import { ArrowLeft, Download, FileText, ChevronDown, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -52,6 +52,7 @@ export function SopPreviewView({
   backUrl,
 }: SopPreviewViewProps) {
   const contentRef = useRef<HTMLDivElement>(null);
+  const [exportingFormat, setExportingFormat] = useState<"pdf" | "docx" | null>(null);
   const isHtml = /<(p|h[1-6]|ul|ol|li|blockquote|br)\b/i.test(content);
 
   useEffect(() => {
@@ -60,30 +61,41 @@ export function SopPreviewView({
     }
   }, [content]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleDownloadPdf = () => {
-    downloadAsPdf(content, `SOP_${university}_${program}.pdf`);
+  const handleDownloadPdf = async () => {
+    setExportingFormat("pdf");
+    try {
+      downloadAsPdf(content, `SOP_${university}_${program}.pdf`);
+      await Promise.resolve();
+    } finally {
+      setExportingFormat(null);
+    }
   };
 
   const handleDownloadDocx = async () => {
+    setExportingFormat("docx");
     const plainText = stripHtml(content);
-    const doc = new Document({
-      sections: [
-        {
-          properties: {},
-          children: plainText.split("\n").map((line) =>
-            line.trim()
-              ? new Paragraph({ children: [new TextRun(line)] })
-              : new Paragraph({ children: [] })
-          ),
-        },
-      ],
-    });
-    const blob = await Packer.toBlob(doc);
-    saveAs(blob, `SOP_${university}_${program}.docx`);
+    try {
+      const doc = new Document({
+        sections: [
+          {
+            properties: {},
+            children: plainText.split("\n").map((line) =>
+              line.trim()
+                ? new Paragraph({ children: [new TextRun(line)] })
+                : new Paragraph({ children: [] })
+            ),
+          },
+        ],
+      });
+      const blob = await Packer.toBlob(doc);
+      saveAs(blob, `SOP_${university}_${program}.docx`);
+    } finally {
+      setExportingFormat(null);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-[#fafafa] py-12 px-4">
+    <div className="min-h-screen bg-background py-12 px-4">
       <div className="max-w-3xl mx-auto">
         {/* Back link */}
         <Link
@@ -133,18 +145,18 @@ export function SopPreviewView({
             </Badge>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button className="flex items-center gap-2">
-                  <Download className="h-4 w-4" />
-                  Download
+                <Button className="flex items-center gap-2" disabled={exportingFormat !== null}>
+                  {exportingFormat ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                  {exportingFormat === "pdf" ? "Preparing PDF..." : exportingFormat === "docx" ? "Preparing DOCX..." : "Download"}
                   <ChevronDown className="h-3 w-3" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={handleDownloadPdf}>
+                <DropdownMenuItem onClick={() => void handleDownloadPdf()} disabled={exportingFormat !== null}>
                   <Download className="mr-2 h-4 w-4" />
                   Download as PDF
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleDownloadDocx}>
+                <DropdownMenuItem onClick={() => void handleDownloadDocx()} disabled={exportingFormat !== null}>
                   <FileText className="mr-2 h-4 w-4" />
                   Download as DOCX
                 </DropdownMenuItem>
@@ -154,15 +166,15 @@ export function SopPreviewView({
         </div>
 
         {/* Content */}
-        <div className="bg-white rounded-xl shadow-lg p-8 md:p-12 border border-muted/20 min-h-[60vh]">
+        <div className="bg-card/95 rounded-xl shadow-lg p-8 md:p-12 border border-border/70 min-h-[60vh]">
           {content ? (
             isHtml ? (
               <div
                 ref={contentRef}
-                className="prose prose-slate max-w-none text-foreground"
+                className="prose max-w-none text-foreground prose-headings:text-primary prose-strong:text-primary"
               />
             ) : (
-              <div className="prose prose-slate max-w-none text-foreground">
+              <div className="prose max-w-none text-foreground prose-headings:text-primary prose-strong:text-primary">
                 <ReactMarkdown>{content}</ReactMarkdown>
               </div>
             )

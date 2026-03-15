@@ -7,13 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PlusCircle } from "lucide-react";
+import { Loader2, PlusCircle } from "lucide-react";
 import { Professor, UniversityApplication, LoRRequest } from "@/lib/types";
 
 interface NewRequestDialogProps {
   professors: Professor[];
   applications: UniversityApplication[];
-  onAdd: (req: LoRRequest) => void;
+  onAdd: (req: LoRRequest) => void | Promise<void>;
   initialApplicationId?: string | null;
   onInitialApplicationHandled?: () => void;
   autoOpenOnInitialApplication?: boolean;
@@ -30,6 +30,7 @@ export function NewRequestDialog({
   children,
 }: NewRequestDialogProps) {
   const [open, setOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     professorId: "",
     applicationId: "",
@@ -53,20 +54,25 @@ export function NewRequestDialog({
     }
   }, [applications, autoOpenOnInitialApplication, initialApplicationId, onInitialApplicationHandled]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.professorId || !formData.applicationId || !formData.deadline) return;
 
-    onAdd({
-      id: Math.random().toString(36).substr(2, 9),
-      professorId: formData.professorId,
-      applicationId: formData.applicationId,
-      status: "Requested",
-      deadline: formData.deadline,
-      reminderSent: false,
-    });
-    setFormData({ professorId: "", applicationId: "", deadline: "" });
-    setOpen(false);
+    try {
+      setIsSubmitting(true);
+      await onAdd({
+        id: Math.random().toString(36).substr(2, 9),
+        professorId: formData.professorId,
+        applicationId: formData.applicationId,
+        status: "Requested",
+        deadline: formData.deadline,
+        reminderSent: false,
+      });
+      setFormData({ professorId: "", applicationId: "", deadline: "" });
+      setOpen(false);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -84,17 +90,21 @@ export function NewRequestDialog({
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
           <div className="grid gap-2">
-            <Label>Select Professor</Label>
-            <Select onValueChange={(val) => setFormData({...formData, professorId: val})}>
-              <SelectTrigger>
-                <SelectValue placeholder="Choose a professor" />
-              </SelectTrigger>
-              <SelectContent>
-                {professors.map(p => (
-                  <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              <Label htmlFor="professor-select">Professor</Label>
+              <Select
+                value={formData.professorId}
+                onValueChange={(val) => setFormData({ ...formData, professorId: val })}
+                required
+              >
+                <SelectTrigger id="professor-select">
+                  <SelectValue placeholder="Choose a professor" />
+                </SelectTrigger>
+                <SelectContent>
+                  {professors.map((professor) => (
+                    <SelectItem key={professor.id} value={professor.id}>{professor.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
           </div>
           <div className="grid gap-2">
             <Label>Link College Shortlist</Label>
@@ -124,7 +134,10 @@ export function NewRequestDialog({
             <Input id="deadline" type="date" value={formData.deadline} onChange={(e) => setFormData({...formData, deadline: e.target.value})} required />
           </div>
           <DialogFooter>
-            <Button type="submit" className="bg-primary text-primary-foreground w-full">Track Request</Button>
+            <Button type="submit" className="bg-primary text-primary-foreground w-full" disabled={isSubmitting}>
+              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {isSubmitting ? "Saving..." : "Track Request"}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

@@ -139,7 +139,7 @@ export default function CollegesPage() {
             </Button>
             <div>
               <h1 className="text-3xl md:text-4xl font-headline font-bold text-primary">College Management</h1>
-              <p className="text-sm md:text-base text-muted-foreground font-literata">
+              <p className="text-sm md:text-base text-muted-foreground font-body">
                 Stay focused on each college shortlist, the SOPs attached to it, the LORs attached to it, and the public link you can share.
               </p>
             </div>

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
 import { useParams } from "next/navigation";
-import { ArrowLeft, BookOpen, Calendar, ExternalLink, FileText, GraduationCap, Share2, Sparkles, User } from "lucide-react";
+import { ArrowLeft, BookOpen, Calendar, ExternalLink, FileText, GraduationCap, Link2, Loader2, Share2, Sparkles, User } from "lucide-react";
 import { LoREditor } from "@/components/dashboard/LoREditor";
 import { NewRequestDialog } from "@/components/dashboard/NewRequestDialog";
 import { NewSopDialog } from "@/components/dashboard/NewSopDialog";
@@ -50,6 +50,7 @@ export default function CollegeDetailPage() {
   const { geminiKey } = useGeminiKey();
   const [editingRequest, setEditingRequest] = useState<LoRRequest | null>(null);
   const [editingSop, setEditingSop] = useState<SopEntry | null>(null);
+  const [isSharingShortlist, setIsSharingShortlist] = useState(false);
 
   const application = useMemo(
     () => applications.find((entry) => entry.id === applicationId) ?? null,
@@ -90,29 +91,34 @@ export default function CollegeDetailPage() {
   const handleShareShortlist = async () => {
     if (!application) return;
 
-    const token = await generateApplicationShareToken(application.id);
-    if (!token) {
-      toast({
-        title: "Unable to share shortlist",
-        description: "Please try again in a moment.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin;
-
     try {
-      await navigator.clipboard.writeText(`${baseUrl}/shortlist/${token}`);
-      toast({
-        title: "Public link copied",
-        description: "The college shortlist link is ready to share.",
-      });
-    } catch {
-      toast({
-        title: "Share link created",
-        description: `${baseUrl}/shortlist/${token}`,
-      });
+      setIsSharingShortlist(true);
+      const token = await generateApplicationShareToken(application.id);
+      if (!token) {
+        toast({
+          title: "Unable to share shortlist",
+          description: "Please try again in a moment.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin;
+
+      try {
+        await navigator.clipboard.writeText(`${baseUrl}/shortlist/${token}`);
+        toast({
+          title: "Public link copied",
+          description: "The college shortlist link is ready to share.",
+        });
+      } catch {
+        toast({
+          title: "Share link created",
+          description: `${baseUrl}/shortlist/${token}`,
+        });
+      }
+    } finally {
+      setIsSharingShortlist(false);
     }
   };
 
@@ -225,9 +231,25 @@ export default function CollegeDetailPage() {
                   <p className="text-sm md:text-base text-muted-foreground">{application.program}</p>
                 </div>
               </div>
-              <p className="max-w-3xl text-sm text-muted-foreground font-literata">
+              <p className="max-w-3xl text-sm text-muted-foreground font-body">
                 {application.description || "No shortlist notes added yet."}
               </p>
+              {application.relevantLinks.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {application.relevantLinks.map((link) => (
+                    <a
+                      key={link}
+                      href={link}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-2 rounded-full border border-primary/30 px-3 py-1 text-xs text-primary hover:bg-primary/5"
+                    >
+                      <Link2 className="h-3.5 w-3.5" />
+                      {link}
+                    </a>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="flex flex-wrap gap-2">
@@ -238,11 +260,12 @@ export default function CollegeDetailPage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="border-blue-500 text-blue-600 hover:bg-blue-50"
+                className="border-info/50 text-info hover:bg-info/15"
+                disabled={isSharingShortlist}
                 onClick={() => void handleShareShortlist()}
               >
-                <Share2 className="mr-2 h-4 w-4" />
-                Share Public Link
+                {isSharingShortlist ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Share2 className="mr-2 h-4 w-4" />}
+                {isSharingShortlist ? "Sharing..." : "Share Public Link"}
               </Button>
               <NewSopDialog onAdd={addSop} initialApplication={application} autoOpenOnInitialApplication={false}>
                 <Button size="sm" className="bg-primary text-primary-foreground">
