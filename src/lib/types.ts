@@ -16,11 +16,11 @@ export type UniversityApplication = {
   shareToken?: string;
 };
 
-export type ApplicationResourceType = "upload" | "link";
+export type ApplicationResourceType = "upload" | "link" | "note";
 
 export type ApplicationResource = {
   id: string;
-  applicationId: string;
+  applicationId?: string;
   resourceType: ApplicationResourceType;
   title: string;
   url?: string;
@@ -28,6 +28,7 @@ export type ApplicationResource = {
   filename?: string;
   mimeType?: string;
   sizeBytes?: number;
+  noteContent?: string;
   tags: string[];
   createdAt: string;
   updatedAt: string;

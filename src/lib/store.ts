@@ -41,7 +41,7 @@ type RequestRow = {
 
 type ResourceRow = {
   id: string;
-  application_id: string;
+  application_id: string | null;
   resource_type: ApplicationResource["resourceType"];
   title: string;
   url: string | null;
@@ -49,6 +49,7 @@ type ResourceRow = {
   filename: string | null;
   mime_type: string | null;
   size_bytes: number | null;
+  note_content: string | null;
   tags: string[] | null;
   created_at: string;
   updated_at: string;
@@ -97,7 +98,7 @@ function toRequest(row: RequestRow): LoRRequest {
 function toResource(row: ResourceRow): ApplicationResource {
   return {
     id: row.id,
-    applicationId: row.application_id,
+    applicationId: row.application_id ?? undefined,
     resourceType: row.resource_type,
     title: row.title,
     url: row.url ?? undefined,
@@ -105,6 +106,7 @@ function toResource(row: ResourceRow): ApplicationResource {
     filename: row.filename ?? undefined,
     mimeType: row.mime_type ?? undefined,
     sizeBytes: row.size_bytes ?? undefined,
+    noteContent: row.note_content ?? undefined,
     tags: row.tags ?? [],
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -339,7 +341,7 @@ export function useLoRStore() {
     const { error } = await supabase.from("application_resources").insert({
       id: resource.id,
       user_id: user.id,
-      application_id: resource.applicationId,
+      application_id: resource.applicationId ?? null,
       resource_type: resource.resourceType,
       title: resource.title,
       url: resource.url ?? null,
@@ -347,6 +349,7 @@ export function useLoRStore() {
       filename: resource.filename ?? null,
       mime_type: resource.mimeType ?? null,
       size_bytes: resource.sizeBytes ?? null,
+      note_content: resource.noteContent ?? null,
       tags: resource.tags,
       created_at: now,
       updated_at: now,
@@ -367,7 +370,7 @@ export function useLoRStore() {
     tags,
     file,
   }: {
-    applicationId: string;
+    applicationId?: string;
     title: string;
     tags: string[];
     file: File;
@@ -376,7 +379,8 @@ export function useLoRStore() {
 
     const id = crypto.randomUUID();
     const safeFilename = file.name.replace(/[^a-zA-Z0-9._-]/g, "-");
-    const storagePath = `${user.id}/${applicationId}/${Date.now()}-${safeFilename}`;
+    const folderSegment = applicationId ?? "global";
+    const storagePath = `${user.id}/${folderSegment}/${Date.now()}-${safeFilename}`;
 
     const uploadResult = await supabase.storage
       .from("application-resources")
@@ -394,7 +398,7 @@ export function useLoRStore() {
     const insertResult = await supabase.from("application_resources").insert({
       id,
       user_id: user.id,
-      application_id: applicationId,
+      application_id: applicationId ?? null,
       resource_type: "upload",
       title,
       url: null,
@@ -402,6 +406,7 @@ export function useLoRStore() {
       filename: file.name,
       mime_type: file.type || null,
       size_bytes: file.size,
+      note_content: null,
       tags,
       created_at: now,
       updated_at: now,

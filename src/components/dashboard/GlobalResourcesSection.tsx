@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { ExternalLink, FileUp, Link2, Loader2, PencilLine, Plus, Trash2 } from "lucide-react";
+import { ExternalLink, Eye, FileText, FileUp, Link2, Loader2, PencilLine, Plus, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TiptapEditor } from "@/components/dashboard/TiptapEditor";
 import { useToast } from "@/hooks/use-toast";
 import { extractUniqueTags, filterResourcesByQuery, filterResourcesByTags } from "@/lib/resourceSearch";
 import { supabase } from "@/lib/supabase";
@@ -21,7 +22,7 @@ interface GlobalResourcesSectionProps {
   resources: ApplicationResource[];
   addResource: (resource: Omit<ApplicationResource, "createdAt" | "updatedAt">) => Promise<boolean>;
   uploadResource: (input: {
-    applicationId: string;
+    applicationId?: string;
     title: string;
     tags: string[];
     file: File;
@@ -41,6 +42,36 @@ function parseTags(rawValue: string) {
   );
 }
 
+function sanitizeNoteHtml(html: string) {
+  if (!html) return "";
+  if (typeof window === "undefined") return html;
+
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+
+  doc.querySelectorAll("script, iframe, object, embed, form").forEach((element) => {
+    element.remove();
+  });
+
+  doc.querySelectorAll("*").forEach((element) => {
+    for (const attr of Array.from(element.attributes)) {
+      const attrName = attr.name.toLowerCase();
+      const attrValue = attr.value.toLowerCase();
+      if (attrName.startsWith("on")) {
+        element.removeAttribute(attr.name);
+      }
+      if (
+        (attrName === "href" || attrName === "src") &&
+        attrValue.includes("javascript:")
+      ) {
+        element.removeAttribute(attr.name);
+      }
+    }
+  });
+
+  return doc.body.innerHTML;
+}
+
 export function GlobalResourcesSection({
   applications,
   resources,
@@ -55,18 +86,24 @@ export function GlobalResourcesSection({
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isAddLinkOpen, setIsAddLinkOpen] = useState(false);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [isAddNoteOpen, setIsAddNoteOpen] = useState(false);
   const [linkTitle, setLinkTitle] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
   const [linkTagsInput, setLinkTagsInput] = useState("");
-  const [linkApplicationId, setLinkApplicationId] = useState("");
+  const [linkApplicationId, setLinkApplicationId] = useState("global");
   const [uploadTitle, setUploadTitle] = useState("");
   const [uploadTagsInput, setUploadTagsInput] = useState("");
-  const [uploadApplicationId, setUploadApplicationId] = useState("");
+  const [uploadApplicationId, setUploadApplicationId] = useState("global");
   const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [noteTitle, setNoteTitle] = useState("");
+  const [noteTagsInput, setNoteTagsInput] = useState("");
+  const [noteContent, setNoteContent] = useState("<p></p>");
   const [editingTagsForId, setEditingTagsForId] = useState<string | null>(null);
   const [editingTagsInput, setEditingTagsInput] = useState("");
+  const [viewingNote, setViewingNote] = useState<ApplicationResource | null>(null);
   const [isSubmittingLink, setIsSubmittingLink] = useState(false);
   const [isSubmittingUpload, setIsSubmittingUpload] = useState(false);
+  const [isSubmittingNote, setIsSubmittingNote] = useState(false);
   const [isSubmittingTags, setIsSubmittingTags] = useState(false);
   const [openingResourceId, setOpeningResourceId] = useState<string | null>(null);
   const [deletingResourceId, setDeletingResourceId] = useState<string | null>(null);
@@ -74,28 +111,34 @@ export function GlobalResourcesSection({
   const uniqueTags = useMemo(() => extractUniqueTags(resources), [resources]);
 
   const visibleResources = useMemo(() => {
-    const byApplication =
-      applicationFilterId === "all"
-        ? resources
-        : resources.filter((resource) => resource.applicationId === applicationFilterId);
+    const byApplication = (() => {
+      if (applicationFilterId === "all") return resources;
+      if (applicationFilterId === "global") {
+        return resources.filter((resource) => !resource.applicationId);
+      }
+      return resources.filter((resource) => resource.applicationId === applicationFilterId);
+    })();
     const byQuery = filterResourcesByQuery(byApplication, query);
     return filterResourcesByTags(byQuery, selectedTags);
   }, [applicationFilterId, query, resources, selectedTags]);
 
-  const getApplicationName = (applicationId: string) => {
+  const getApplicationName = (applicationId?: string) => {
+    if (!applicationId) return "Global";
     const application = applications.find((entry) => entry.id === applicationId);
-    if (!application) return "Unknown application";
+    if (!application) return "Deleted application";
     return `${application.university} - ${application.program}`;
   };
 
   const handleAddLink = async () => {
-    if (!linkApplicationId || !linkTitle.trim() || !linkUrl.trim()) return;
+    if (!linkTitle.trim() || !linkUrl.trim()) return;
 
     try {
       setIsSubmittingLink(true);
+      const linkedApplicationId =
+        linkApplicationId === "global" ? undefined : linkApplicationId;
       const success = await addResource({
         id: crypto.randomUUID(),
-        applicationId: linkApplicationId,
+        applicationId: linkedApplicationId,
         resourceType: "link",
         title: linkTitle.trim(),
         url: linkUrl.trim(),
@@ -103,7 +146,7 @@ export function GlobalResourcesSection({
       });
       if (!success) throw new Error("Add link failed");
 
-      setLinkApplicationId("");
+      setLinkApplicationId("global");
       setLinkTitle("");
       setLinkUrl("");
       setLinkTagsInput("");
@@ -124,19 +167,21 @@ export function GlobalResourcesSection({
   };
 
   const handleUpload = async () => {
-    if (!uploadApplicationId || !uploadTitle.trim() || !uploadFile) return;
+    if (!uploadTitle.trim() || !uploadFile) return;
 
     try {
       setIsSubmittingUpload(true);
+      const linkedApplicationId =
+        uploadApplicationId === "global" ? undefined : uploadApplicationId;
       const created = await uploadResource({
-        applicationId: uploadApplicationId,
+        applicationId: linkedApplicationId,
         title: uploadTitle.trim(),
         tags: parseTags(uploadTagsInput),
         file: uploadFile,
       });
       if (!created) throw new Error("Upload failed");
 
-      setUploadApplicationId("");
+      setUploadApplicationId("global");
       setUploadTitle("");
       setUploadTagsInput("");
       setUploadFile(null);
@@ -153,6 +198,40 @@ export function GlobalResourcesSection({
       });
     } finally {
       setIsSubmittingUpload(false);
+    }
+  };
+
+  const handleAddNote = async () => {
+    const plainTextContent = noteContent.replace(/<[^>]+>/g, "").trim();
+    if (!noteTitle.trim() || !plainTextContent) return;
+
+    try {
+      setIsSubmittingNote(true);
+      const success = await addResource({
+        id: crypto.randomUUID(),
+        resourceType: "note",
+        title: noteTitle.trim(),
+        noteContent,
+        tags: parseTags(noteTagsInput),
+      });
+      if (!success) throw new Error("Add note failed");
+
+      setNoteTitle("");
+      setNoteTagsInput("");
+      setNoteContent("<p></p>");
+      setIsAddNoteOpen(false);
+      toast({
+        title: "Note added",
+        description: "The note is now available in global resources.",
+      });
+    } catch {
+      toast({
+        title: "Unable to add note",
+        description: "Please try again in a moment.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmittingNote(false);
     }
   };
 
@@ -240,12 +319,13 @@ export function GlobalResourcesSection({
                 </DialogHeader>
                 <div className="grid gap-4 py-2">
                   <div className="grid gap-2">
-                    <Label htmlFor="global-link-application">Application</Label>
+                    <Label htmlFor="global-link-application">Scope</Label>
                     <Select value={linkApplicationId} onValueChange={setLinkApplicationId}>
                       <SelectTrigger id="global-link-application">
-                        <SelectValue placeholder="Select application" />
+                        <SelectValue placeholder="Select scope" />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="global">Global (unlinked)</SelectItem>
                         {applications.map((application) => (
                           <SelectItem key={application.id} value={application.id}>
                             {application.university} - {application.program}
@@ -304,12 +384,13 @@ export function GlobalResourcesSection({
                 </DialogHeader>
                 <div className="grid gap-4 py-2">
                   <div className="grid gap-2">
-                    <Label htmlFor="global-upload-application">Application</Label>
+                    <Label htmlFor="global-upload-application">Scope</Label>
                     <Select value={uploadApplicationId} onValueChange={setUploadApplicationId}>
                       <SelectTrigger id="global-upload-application">
-                        <SelectValue placeholder="Select application" />
+                        <SelectValue placeholder="Select scope" />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="global">Global (unlinked)</SelectItem>
                         {applications.map((application) => (
                           <SelectItem key={application.id} value={application.id}>
                             {application.university} - {application.program}
@@ -353,6 +434,55 @@ export function GlobalResourcesSection({
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+            <Dialog open={isAddNoteOpen} onOpenChange={setIsAddNoteOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" variant="outline" className="border-primary/40 text-primary hover:bg-primary/10">
+                  <FileText className="mr-2 h-4 w-4" />
+                  Add Note
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-4xl">
+                <DialogHeader>
+                  <DialogTitle>Add rich-text note</DialogTitle>
+                </DialogHeader>
+                <div className="grid gap-4 py-2">
+                  <div className="grid gap-2">
+                    <Label htmlFor="global-note-title">Title</Label>
+                    <Input
+                      id="global-note-title"
+                      value={noteTitle}
+                      onChange={(event) => setNoteTitle(event.target.value)}
+                      placeholder="Example: Visa prep checklist"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="global-note-tags">Tags</Label>
+                    <Input
+                      id="global-note-tags"
+                      value={noteTagsInput}
+                      onChange={(event) => setNoteTagsInput(event.target.value)}
+                      placeholder="visa, checklist, docs"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Content</Label>
+                    <div className="max-h-[60vh] overflow-y-auto rounded-md border border-accent/20 p-3">
+                      <TiptapEditor
+                        content={noteContent}
+                        onChange={setNoteContent}
+                        placeholder="Write your note here..."
+                      />
+                    </div>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button onClick={() => void handleAddNote()} disabled={isSubmittingNote}>
+                    {isSubmittingNote ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
+                    Save Note
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
 
@@ -368,6 +498,7 @@ export function GlobalResourcesSection({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All applications</SelectItem>
+              <SelectItem value="global">Global only</SelectItem>
               {applications.map((application) => (
                 <SelectItem key={application.id} value={application.id}>
                   {application.university} - {application.program}
@@ -427,21 +558,39 @@ export function GlobalResourcesSection({
                       <div className="flex flex-col">
                         <span className="font-medium text-primary">{resource.title}</span>
                         <span className="text-xs text-muted-foreground line-clamp-1">
-                          {resource.resourceType === "link" ? resource.url : resource.filename}
+                          {resource.resourceType === "link"
+                            ? resource.url
+                            : resource.resourceType === "upload"
+                              ? resource.filename
+                              : "Rich text note"}
                         </span>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col">
                         <span className="text-sm">{getApplicationName(resource.applicationId)}</span>
-                        <Link href={`/colleges/${resource.applicationId}`} className="text-xs text-primary hover:underline">
-                          Open application
-                        </Link>
+                        {resource.applicationId ? (
+                          <Link href={`/colleges/${resource.applicationId}`} className="text-xs text-primary hover:underline">
+                            Open application
+                          </Link>
+                        ) : null}
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={resource.resourceType === "link" ? "outline" : "secondary"}>
-                        {resource.resourceType === "link" ? "Link" : "Upload"}
+                      <Badge
+                        variant={
+                          resource.resourceType === "link"
+                            ? "outline"
+                            : resource.resourceType === "upload"
+                              ? "secondary"
+                              : "default"
+                        }
+                      >
+                        {resource.resourceType === "link"
+                          ? "Link"
+                          : resource.resourceType === "upload"
+                            ? "Upload"
+                            : "Note"}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -459,7 +608,16 @@ export function GlobalResourcesSection({
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        {resource.resourceType === "link" && resource.url ? (
+                        {resource.resourceType === "note" ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setViewingNote(resource)}
+                          >
+                            <Eye className="mr-2 h-4 w-4" />
+                            View
+                          </Button>
+                        ) : resource.resourceType === "link" && resource.url ? (
                           <Button asChild variant="outline" size="sm">
                             <a href={resource.url} target="_blank" rel="noreferrer">
                               <ExternalLink className="mr-2 h-4 w-4" />
@@ -547,6 +705,28 @@ export function GlobalResourcesSection({
           </Table>
         </div>
       </CardContent>
+      <Dialog
+        open={Boolean(viewingNote)}
+        onOpenChange={(open) => {
+          if (!open) setViewingNote(null);
+        }}
+      >
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>{viewingNote?.title ?? "Note"}</DialogTitle>
+          </DialogHeader>
+          {viewingNote?.noteContent ? (
+            <div className="max-h-[65vh] overflow-y-auto rounded-md border border-accent/20 bg-muted/20 p-4">
+              <div
+                className="prose prose-slate max-w-none font-body text-base text-foreground"
+                dangerouslySetInnerHTML={{ __html: sanitizeNoteHtml(viewingNote.noteContent) }}
+              />
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">No note content available.</p>
+          )}
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

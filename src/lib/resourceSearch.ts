@@ -16,6 +16,7 @@ export function filterResourcesByQuery(
       resource.title,
       resource.url ?? "",
       resource.filename ?? "",
+      resource.noteContent ?? "",
       ...resource.tags,
     ]
       .join(" ")
