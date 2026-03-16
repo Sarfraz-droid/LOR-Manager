@@ -16,6 +16,23 @@ export type UniversityApplication = {
   shareToken?: string;
 };
 
+export type ApplicationResourceType = "upload" | "link";
+
+export type ApplicationResource = {
+  id: string;
+  applicationId: string;
+  resourceType: ApplicationResourceType;
+  title: string;
+  url?: string;
+  storagePath?: string;
+  filename?: string;
+  mimeType?: string;
+  sizeBytes?: number;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type LoRStatus = 'Requested' | 'In Progress' | 'Submitted';
 
 export type LoRRequest = {
@@ -26,6 +43,7 @@ export type LoRRequest = {
   deadline: string;
   reminderSent: boolean;
   content?: string;
+  googleDocsLink?: string;
   lastEdited?: string;
   shareToken?: string;
 };
@@ -40,5 +58,6 @@ export type SopEntry = {
   applicationId?: string;
   status: SopStatus;
   content?: string;
+  googleDocsLink?: string;
   lastEdited?: string;
 };

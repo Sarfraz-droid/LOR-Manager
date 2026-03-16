@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, PlusCircle } from "lucide-react";
+import { Calendar, GraduationCap, Link2, Loader2, PlusCircle, User } from "lucide-react";
 import { Professor, UniversityApplication, LoRRequest } from "@/lib/types";
 
 interface NewRequestDialogProps {
@@ -15,6 +15,7 @@ interface NewRequestDialogProps {
   applications: UniversityApplication[];
   onAdd: (req: LoRRequest) => void | Promise<void>;
   initialApplicationId?: string | null;
+  lockApplicationSelection?: boolean;
   onInitialApplicationHandled?: () => void;
   autoOpenOnInitialApplication?: boolean;
   children?: ReactNode;
@@ -25,6 +26,7 @@ export function NewRequestDialog({
   applications,
   onAdd,
   initialApplicationId,
+  lockApplicationSelection = false,
   onInitialApplicationHandled,
   autoOpenOnInitialApplication = true,
   children,
@@ -35,6 +37,7 @@ export function NewRequestDialog({
     professorId: "",
     applicationId: "",
     deadline: "",
+    googleDocsLink: "",
   });
 
   useEffect(() => {
@@ -54,6 +57,10 @@ export function NewRequestDialog({
     }
   }, [applications, autoOpenOnInitialApplication, initialApplicationId, onInitialApplicationHandled]);
 
+  const lockedApplication = lockApplicationSelection && initialApplicationId
+    ? applications.find((entry) => entry.id === initialApplicationId) ?? null
+    : null;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.professorId || !formData.applicationId || !formData.deadline) return;
@@ -67,8 +74,9 @@ export function NewRequestDialog({
         status: "Requested",
         deadline: formData.deadline,
         reminderSent: false,
+        googleDocsLink: formData.googleDocsLink.trim() || undefined,
       });
-      setFormData({ professorId: "", applicationId: "", deadline: "" });
+      setFormData({ professorId: "", applicationId: "", deadline: "", googleDocsLink: "" });
       setOpen(false);
     } finally {
       setIsSubmitting(false);
@@ -84,13 +92,16 @@ export function NewRequestDialog({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[460px]">
         <DialogHeader>
           <DialogTitle className="text-primary">Request New Letter</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
           <div className="grid gap-2">
-              <Label htmlFor="professor-select">Professor</Label>
+              <Label htmlFor="professor-select" className="inline-flex items-center gap-2">
+                <User className="h-3.5 w-3.5 text-muted-foreground" />
+                Professor
+              </Label>
               <Select
                 value={formData.professorId}
                 onValueChange={(val) => setFormData({ ...formData, professorId: val })}
@@ -106,32 +117,68 @@ export function NewRequestDialog({
                 </SelectContent>
               </Select>
           </div>
+          {lockedApplication ? (
+            <div className="grid gap-2">
+              <Label className="inline-flex items-center gap-2">
+                <GraduationCap className="h-3.5 w-3.5 text-muted-foreground" />
+                College Shortlist
+              </Label>
+              <Input
+                value={`${lockedApplication.university} - ${lockedApplication.program}`}
+                readOnly
+                disabled
+              />
+            </div>
+          ) : (
+            <div className="grid gap-2">
+              <Label className="inline-flex items-center gap-2">
+                <GraduationCap className="h-3.5 w-3.5 text-muted-foreground" />
+                Link College Shortlist
+              </Label>
+              <Select
+                value={formData.applicationId}
+                onValueChange={(val) => {
+                  const application = applications.find((entry) => entry.id === val);
+                  setFormData({
+                    ...formData,
+                    applicationId: val,
+                    deadline: application?.deadline ?? formData.deadline,
+                  });
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a shortlist" />
+                </SelectTrigger>
+                <SelectContent>
+                  {applications.map(a => (
+                    <SelectItem key={a.id} value={a.id}>{a.university} - {a.program}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="grid gap-2">
-            <Label>Link College Shortlist</Label>
-            <Select
-              value={formData.applicationId}
-              onValueChange={(val) => {
-                const application = applications.find((entry) => entry.id === val);
-                setFormData({
-                  ...formData,
-                  applicationId: val,
-                  deadline: application?.deadline ?? formData.deadline,
-                });
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Choose a shortlist" />
-              </SelectTrigger>
-              <SelectContent>
-                {applications.map(a => (
-                  <SelectItem key={a.id} value={a.id}>{a.university} - {a.program}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label htmlFor="deadline" className="inline-flex items-center gap-2">
+              <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+              Submission Deadline
+            </Label>
+            <Input id="deadline" type="date" value={formData.deadline} onChange={(e) => setFormData({...formData, deadline: e.target.value})} required />
+          </div>
+          <div className="rounded-md border border-dashed border-info/30 bg-info/5 px-3 py-2 text-xs text-muted-foreground">
+            Optional: attach a Google Docs link if your recommender is drafting outside this app.
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="deadline">Submission Deadline</Label>
-            <Input id="deadline" type="date" value={formData.deadline} onChange={(e) => setFormData({...formData, deadline: e.target.value})} required />
+            <Label htmlFor="google-docs-link" className="inline-flex items-center gap-2">
+              <Link2 className="h-3.5 w-3.5 text-muted-foreground" />
+              Google Docs Link (Optional)
+            </Label>
+            <Input
+              id="google-docs-link"
+              type="url"
+              value={formData.googleDocsLink}
+              onChange={(e) => setFormData({ ...formData, googleDocsLink: e.target.value })}
+              placeholder="https://docs.google.com/document/d/..."
+            />
           </div>
           <DialogFooter>
             <Button type="submit" className="bg-primary text-primary-foreground w-full" disabled={isSubmitting}>

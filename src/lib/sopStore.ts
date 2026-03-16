@@ -15,6 +15,7 @@ type SopRow = {
   application_id: string | null;
   status: SopEntry["status"];
   content: string;
+  google_docs_link: string | null;
   last_edited: string | null;
 };
 
@@ -30,6 +31,7 @@ function toSopEntry(row: SopRow): SopEntry {
     applicationId: row.application_id ?? undefined,
     status: row.status,
     content: row.content ?? "",
+    googleDocsLink: row.google_docs_link ?? undefined,
     lastEdited: row.last_edited ?? undefined,
   };
 }
@@ -75,6 +77,7 @@ export function useSopStore(userId: string | null) {
       application_id: sop.applicationId ?? null,
       status: sop.status,
       content: sop.content ?? "",
+      google_docs_link: sop.googleDocsLink ?? null,
     });
     if (!error) setSops((prev) => [...prev, sop]);
     else console.error("addSop:", error.message);

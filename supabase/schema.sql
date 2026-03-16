@@ -36,6 +36,7 @@ create table if not exists lor_requests (
   deadline       text not null,
   reminder_sent  boolean not null default false,
   content        text not null default '',
+  google_docs_link text,
   last_edited    text,
   share_token    text unique
 );
@@ -49,6 +50,7 @@ create table if not exists sop_entries (
   deadline       text not null,
   status         text not null default 'Draft',
   content        text not null default '',
+  google_docs_link text,
   last_edited    text
 );
 

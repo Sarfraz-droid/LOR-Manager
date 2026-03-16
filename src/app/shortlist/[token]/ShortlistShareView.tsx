@@ -1,7 +1,7 @@
 "use client";
 
 import { format } from "date-fns";
-import { BookOpen, Calendar, Eye, FileText, GraduationCap, Link2, User } from "lucide-react";
+import { BookOpen, Calendar, Eye, FileUp, FileText, GraduationCap, Link2, User } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ interface SharedShortlistData {
     deadline: string;
     status: string;
     content: string;
+    googleDocsLink?: string;
   }>;
   lors: Array<{
     id: string;
@@ -30,10 +31,30 @@ interface SharedShortlistData {
     status: string;
     content: string;
     professorName: string;
+    googleDocsLink?: string;
+  }>;
+  resources: Array<{
+    id: string;
+    resourceType: "upload" | "link";
+    title: string;
+    url?: string;
+    filename?: string;
+    mimeType?: string;
+    sizeBytes?: number;
+    tags: string[];
+    openUrl?: string;
   }>;
 }
 
-export function ShortlistShareView({ token, shortlist, sops, lors }: SharedShortlistData) {
+function formatBytes(value?: number) {
+  if (!value || value <= 0) return "Unknown size";
+  if (value < 1024) return `${value} B`;
+  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
+  if (value < 1024 * 1024 * 1024) return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(value / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+}
+
+export function ShortlistShareView({ token, shortlist, sops, lors, resources }: SharedShortlistData) {
   return (
     <div className="min-h-screen bg-background px-4 py-12">
       <div className="mx-auto max-w-5xl space-y-6">
@@ -120,16 +141,22 @@ export function ShortlistShareView({ token, shortlist, sops, lors }: SharedShort
                             </Badge>
                           </TableCell>
                           <TableCell>
-                             <Button
+                            <Button
                               variant="ghost"
                               size="sm"
                               className="h-9 w-9 rounded-full hover:bg-secondary/70"
                               asChild
                               aria-label={`View SOP for ${sop.program}`}
                             >
-                              <Link href={`/shortlist/${token}/sop/${sop.id}`} target="_blank">
-                                <Eye className="h-4 w-4" />
-                              </Link>
+                              {sop.googleDocsLink ? (
+                                <a href={sop.googleDocsLink} target="_blank" rel="noreferrer">
+                                  <Eye className="h-4 w-4" />
+                                </a>
+                              ) : (
+                                <Link href={`/shortlist/${token}/sop/${sop.id}`} target="_blank">
+                                  <Eye className="h-4 w-4" />
+                                </Link>
+                              )}
                             </Button>
                           </TableCell>
                         </TableRow>
@@ -185,16 +212,22 @@ export function ShortlistShareView({ token, shortlist, sops, lors }: SharedShort
                             </Badge>
                           </TableCell>
                           <TableCell>
-                             <Button
+                            <Button
                               variant="ghost"
                               size="sm"
                               className="h-9 w-9 rounded-full hover:bg-secondary/70"
                               asChild
                               aria-label={`View LOR from ${lor.professorName}`}
                             >
-                              <Link href={`/shortlist/${token}/lor/${lor.id}`} target="_blank">
-                                <Eye className="h-4 w-4" />
-                              </Link>
+                              {lor.googleDocsLink ? (
+                                <a href={lor.googleDocsLink} target="_blank" rel="noreferrer">
+                                  <Eye className="h-4 w-4" />
+                                </a>
+                              ) : (
+                                <Link href={`/shortlist/${token}/lor/${lor.id}`} target="_blank">
+                                  <Eye className="h-4 w-4" />
+                                </Link>
+                              )}
                             </Button>
                           </TableCell>
                         </TableRow>
@@ -206,6 +239,93 @@ export function ShortlistShareView({ token, shortlist, sops, lors }: SharedShort
             </CardContent>
           </Card>
         </div>
+
+        <Card className="border-border/70 bg-card/95">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <FileUp className="h-5 w-5 text-accent" />
+              Application Resources
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="rounded-md border border-accent/10 overflow-hidden">
+              <Table>
+                <TableHeader className="bg-surface-1/60">
+                  <TableRow>
+                    <TableHead>Title</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Tags</TableHead>
+                    <TableHead className="w-16"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {resources.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="py-8 text-center text-muted-foreground italic">
+                        No files or links are attached to this shortlist.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    resources.map((resource) => (
+                      <TableRow key={resource.id}>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span className="font-medium text-primary">{resource.title}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {resource.resourceType === "upload"
+                                ? `${resource.filename ?? "Uploaded file"} - ${formatBytes(resource.sizeBytes)}`
+                                : resource.url ?? "External link"}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={resource.resourceType === "upload" ? "secondary" : "outline"}>
+                            {resource.resourceType === "upload" ? "Upload" : "Link"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {resource.tags.length === 0 ? (
+                            <span className="text-xs text-muted-foreground">No tags</span>
+                          ) : (
+                            <div className="flex flex-wrap gap-1.5">
+                              {resource.tags.map((tag) => (
+                                <Badge key={`${resource.id}-${tag}`} variant="outline" className="text-[10px]">
+                                  {tag}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {(resource.resourceType === "link" && resource.url) ||
+                          (resource.resourceType === "upload" && resource.openUrl) ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-9 w-9 rounded-full hover:bg-secondary/70"
+                              asChild
+                              aria-label={`Open resource ${resource.title}`}
+                            >
+                              <a
+                                href={resource.resourceType === "upload" ? resource.openUrl : resource.url}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </a>
+                            </Button>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">N/A</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

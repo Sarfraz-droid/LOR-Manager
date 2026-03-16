@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
 import { useParams } from "next/navigation";
-import { ArrowLeft, BookOpen, Calendar, ExternalLink, FileText, GraduationCap, Link2, Loader2, Share2, Sparkles, User } from "lucide-react";
+import { ArrowLeft, BookOpen, Calendar, ExternalLink, FileText, GraduationCap, Link2, Loader2, Plus, Share2, Trash2, User } from "lucide-react";
+import { ApplicationResourcesSection } from "@/components/dashboard/ApplicationResourcesSection";
 import { LoREditor } from "@/components/dashboard/LoREditor";
 import { NewRequestDialog } from "@/components/dashboard/NewRequestDialog";
 import { NewSopDialog } from "@/components/dashboard/NewSopDialog";
@@ -34,8 +35,14 @@ export default function CollegeDetailPage() {
     professors,
     applications,
     requests,
+    resources,
     isLoading,
     addRequest,
+    addResource,
+    uploadResource,
+    updateResourceTags,
+    deleteResource,
+    deleteRequest,
     updateRequestContent,
     generateShareToken,
     generateApplicationShareToken,
@@ -44,6 +51,7 @@ export default function CollegeDetailPage() {
     sops,
     isLoading: isSopLoading,
     addSop,
+    deleteSop,
     updateSopContent,
   } = useSopStore(user?.id ?? null);
   const { toast } = useToast();
@@ -51,6 +59,8 @@ export default function CollegeDetailPage() {
   const [editingRequest, setEditingRequest] = useState<LoRRequest | null>(null);
   const [editingSop, setEditingSop] = useState<SopEntry | null>(null);
   const [isSharingShortlist, setIsSharingShortlist] = useState(false);
+  const [deletingSopId, setDeletingSopId] = useState<string | null>(null);
+  const [deletingRequestId, setDeletingRequestId] = useState<string | null>(null);
 
   const application = useMemo(
     () => applications.find((entry) => entry.id === applicationId) ?? null,
@@ -69,6 +79,10 @@ export default function CollegeDetailPage() {
     if (!application) return [];
     return requests.filter((request) => request.applicationId === application.id);
   }, [application, requests]);
+  const applicationResources = useMemo(() => {
+    if (!application) return [];
+    return resources.filter((resource) => resource.applicationId === application.id);
+  }, [application, resources]);
 
   const handleSaveLoR = (content: string) => {
     if (!editingRequest) return;
@@ -119,6 +133,74 @@ export default function CollegeDetailPage() {
       }
     } finally {
       setIsSharingShortlist(false);
+    }
+  };
+
+  const handleDeleteSop = async (id: string) => {
+    try {
+      setDeletingSopId(id);
+      await deleteSop(id);
+      if (editingSop?.id === id) {
+        setEditingSop(null);
+      }
+    } finally {
+      setDeletingSopId(null);
+    }
+  };
+
+  const handleDeleteRequest = async (id: string) => {
+    try {
+      setDeletingRequestId(id);
+      await deleteRequest(id);
+      if (editingRequest?.id === id) {
+        setEditingRequest(null);
+      }
+    } finally {
+      setDeletingRequestId(null);
+    }
+  };
+
+  const handleAddResourceLink = async (data: { title: string; url: string; tags: string[] }) => {
+    if (!application) return;
+    const success = await addResource({
+      id: crypto.randomUUID(),
+      applicationId: application.id,
+      resourceType: "link",
+      title: data.title,
+      url: data.url,
+      tags: data.tags,
+    });
+
+    if (!success) {
+      throw new Error("Unable to add resource link");
+    }
+  };
+
+  const handleUploadResourceFile = async (data: { title: string; file: File; tags: string[] }) => {
+    if (!application) return;
+    const createdResource = await uploadResource({
+      applicationId: application.id,
+      title: data.title,
+      tags: data.tags,
+      file: data.file,
+    });
+
+    if (!createdResource) {
+      throw new Error("Unable to upload resource file");
+    }
+  };
+
+  const handleUpdateResourceTags = async (resourceId: string, tags: string[]) => {
+    const success = await updateResourceTags(resourceId, tags);
+    if (!success) {
+      throw new Error("Unable to update resource tags");
+    }
+  };
+
+  const handleDeleteResource = async (resourceId: string) => {
+    const success = await deleteResource(resourceId);
+    if (!success) {
+      throw new Error("Unable to delete resource");
     }
   };
 
@@ -269,7 +351,7 @@ export default function CollegeDetailPage() {
               </Button>
               <NewSopDialog onAdd={addSop} initialApplication={application} autoOpenOnInitialApplication={false}>
                 <Button size="sm" className="bg-primary text-primary-foreground">
-                  <Sparkles className="mr-2 h-4 w-4" />
+                  <Plus className="mr-2 h-4 w-4" />
                   Add SOP
                 </Button>
               </NewSopDialog>
@@ -278,6 +360,7 @@ export default function CollegeDetailPage() {
                 applications={applications}
                 onAdd={addRequest}
                 initialApplicationId={application.id}
+                lockApplicationSelection
                 autoOpenOnInitialApplication={false}
               >
                 <Button
@@ -316,21 +399,21 @@ export default function CollegeDetailPage() {
           </Card>
         </div>
 
+        <ApplicationResourcesSection
+          resources={applicationResources}
+          onAddLink={handleAddResourceLink}
+          onUploadFile={handleUploadResourceFile}
+          onUpdateTags={handleUpdateResourceTags}
+          onDelete={handleDeleteResource}
+        />
+
         <div className="grid gap-6 lg:grid-cols-2">
           <Card className="border-accent/20">
-            <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
-              <div>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <FileText className="h-4 w-4 text-accent" />
-                  Connected SOPs
-                </CardTitle>
-              </div>
-              <NewSopDialog onAdd={addSop} initialApplication={application} autoOpenOnInitialApplication={false}>
-                <Button size="sm" className="bg-primary text-primary-foreground">
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  Add SOP
-                </Button>
-              </NewSopDialog>
+            <CardHeader className="space-y-0">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <FileText className="h-4 w-4 text-accent" />
+                Connected SOPs
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="rounded-md border border-accent/10 overflow-hidden">
@@ -366,10 +449,35 @@ export default function CollegeDetailPage() {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right">
-                            <Button variant="ghost" size="sm" onClick={() => setEditingSop(sop)}>
-                              <ExternalLink className="mr-2 h-4 w-4" />
-                              Open
-                            </Button>
+                            <div className="flex justify-end gap-2">
+                              {sop.googleDocsLink ? (
+                                <Button asChild variant="outline" size="sm">
+                                  <a href={sop.googleDocsLink} target="_blank" rel="noreferrer">
+                                    <ExternalLink className="mr-2 h-4 w-4" />
+                                    Open Doc
+                                  </a>
+                                </Button>
+                              ) : (
+                              <Button variant="ghost" size="sm" onClick={() => setEditingSop(sop)}>
+                                <ExternalLink className="mr-2 h-4 w-4" />
+                                Open
+                              </Button>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => void handleDeleteSop(sop.id)}
+                                disabled={deletingSopId === sop.id}
+                                className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                aria-label="Delete SOP"
+                              >
+                                {deletingSopId === sop.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Trash2 className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))
@@ -381,29 +489,11 @@ export default function CollegeDetailPage() {
           </Card>
 
           <Card className="border-accent/20">
-            <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
-              <div>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <BookOpen className="h-4 w-4 text-accent" />
-                  Connected LORs
-                </CardTitle>
-              </div>
-              <NewRequestDialog
-                professors={professors}
-                applications={applications}
-                onAdd={addRequest}
-                initialApplicationId={application.id}
-                autoOpenOnInitialApplication={false}
-              >
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="border-primary text-primary hover:bg-primary/10"
-                >
-                  <User className="mr-2 h-4 w-4" />
-                  Add LOR
-                </Button>
-              </NewRequestDialog>
+            <CardHeader className="space-y-0">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <BookOpen className="h-4 w-4 text-accent" />
+                Connected LORs
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="rounded-md border border-accent/10 overflow-hidden">
@@ -441,10 +531,35 @@ export default function CollegeDetailPage() {
                               </Badge>
                             </TableCell>
                             <TableCell className="text-right">
-                              <Button variant="ghost" size="sm" onClick={() => setEditingRequest(request)}>
-                                <ExternalLink className="mr-2 h-4 w-4" />
-                                Open
-                              </Button>
+                              <div className="flex justify-end gap-2">
+                                {request.googleDocsLink ? (
+                                  <Button asChild variant="outline" size="sm">
+                                    <a href={request.googleDocsLink} target="_blank" rel="noreferrer">
+                                      <ExternalLink className="mr-2 h-4 w-4" />
+                                      Open Doc
+                                    </a>
+                                  </Button>
+                                ) : (
+                                  <Button variant="ghost" size="sm" onClick={() => setEditingRequest(request)}>
+                                  <ExternalLink className="mr-2 h-4 w-4" />
+                                  Open
+                                  </Button>
+                                )}
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => void handleDeleteRequest(request.id)}
+                                  disabled={deletingRequestId === request.id}
+                                  className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                  aria-label="Delete LOR"
+                                >
+                                  {deletingRequestId === request.id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </div>
                             </TableCell>
                           </TableRow>
                         );

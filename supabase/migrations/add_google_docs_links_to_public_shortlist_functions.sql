@@ -1,34 +1,8 @@
--- Migration: make public shortlist preview resilient by exposing shared data
--- through explicit security definer RPC helpers instead of depending on table
--- select policies alone.
+-- Migration: expose google_docs_link in public shortlist RPCs so shared preview
+-- can route directly to Google Docs when an external doc exists.
 
-drop function if exists public.get_shared_shortlist(text);
-
-create or replace function public.get_shared_shortlist(share_token_input text)
-returns table (
-  id text,
-  university text,
-  program text,
-  deadline text,
-  description text,
-  relevant_links jsonb
-)
-language sql
-security definer
-set search_path = public
-stable
-as $$
-  select
-    university_applications.id,
-    university_applications.university,
-    university_applications.program,
-    university_applications.deadline,
-    university_applications.description,
-    university_applications.relevant_links
-  from public.university_applications
-  where university_applications.share_token = share_token_input
-  limit 1;
-$$;
+drop function if exists public.get_shared_shortlist_sops(text);
+drop function if exists public.get_shared_shortlist_lors(text);
 
 create or replace function public.get_shared_shortlist_sops(share_token_input text)
 returns table (
@@ -96,7 +70,3 @@ as $$
   where university_applications.share_token = share_token_input
   order by lor_requests.deadline nulls last, professors.name nulls last, lor_requests.id;
 $$;
-
-grant execute on function public.get_shared_shortlist(text) to anon, authenticated;
-grant execute on function public.get_shared_shortlist_sops(text) to anon, authenticated;
-grant execute on function public.get_shared_shortlist_lors(text) to anon, authenticated;

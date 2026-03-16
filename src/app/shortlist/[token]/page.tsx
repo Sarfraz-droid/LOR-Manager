@@ -21,6 +21,7 @@ type SharedSopRow = {
   deadline: string | null;
   status: string | null;
   content: string | null;
+  google_docs_link: string | null;
 };
 
 type SharedLorRow = {
@@ -30,6 +31,20 @@ type SharedLorRow = {
   status: string | null;
   content: string | null;
   professor_name: string | null;
+  google_docs_link: string | null;
+};
+
+type SharedResourceRow = {
+  id: string;
+  application_id: string | null;
+  resource_type: "upload" | "link" | null;
+  title: string | null;
+  url: string | null;
+  storage_path: string | null;
+  filename: string | null;
+  mime_type: string | null;
+  size_bytes: number | null;
+  tags: string[] | null;
 };
 
 async function getShortlistData(token: string) {
@@ -43,12 +58,53 @@ async function getShortlistData(token: string) {
 
   if (shortlistError || !shortlist) return null;
 
-  const [{ data: sops }, { data: lors }] = await Promise.all([
+  const [{ data: sops }, { data: lors }, { data: resources }] = await Promise.all([
     supabase.rpc("get_shared_shortlist_sops", { share_token_input: token }),
     supabase.rpc("get_shared_shortlist_lors", { share_token_input: token }),
+    supabase.rpc("get_shared_shortlist_resources", { share_token_input: token }),
   ]);
   const shortlistSops = (sops ?? []) as SharedSopRow[];
   const shortlistLors = (lors ?? []) as SharedLorRow[];
+  const shortlistResources = (resources ?? []) as SharedResourceRow[];
+
+  const resourcesWithOpenUrl = await Promise.all(
+    shortlistResources.map(async (resource) => {
+      if (resource.resource_type !== "upload" || !resource.storage_path) {
+        return {
+          id: String(resource.id),
+          resourceType: resource.resource_type === "upload" ? "upload" : "link",
+          title: typeof resource.title === "string" ? resource.title : "Resource",
+          url: typeof resource.url === "string" ? resource.url : undefined,
+          filename:
+            typeof resource.filename === "string" ? resource.filename : undefined,
+          mimeType:
+            typeof resource.mime_type === "string" ? resource.mime_type : undefined,
+          sizeBytes:
+            typeof resource.size_bytes === "number" ? resource.size_bytes : undefined,
+          tags: resource.tags ?? [],
+          openUrl: undefined as string | undefined,
+        };
+      }
+
+      const { data: signedData } = await supabase.storage
+        .from("application-resources")
+        .createSignedUrl(resource.storage_path, 60 * 60);
+
+      return {
+        id: String(resource.id),
+        resourceType: "upload" as const,
+        title: typeof resource.title === "string" ? resource.title : "Uploaded file",
+        url: undefined,
+        filename: typeof resource.filename === "string" ? resource.filename : undefined,
+        mimeType:
+          typeof resource.mime_type === "string" ? resource.mime_type : undefined,
+        sizeBytes:
+          typeof resource.size_bytes === "number" ? resource.size_bytes : undefined,
+        tags: resource.tags ?? [],
+        openUrl: signedData?.signedUrl,
+      };
+    })
+  );
 
   return {
     shortlist: {
@@ -64,6 +120,8 @@ async function getShortlistData(token: string) {
       deadline: typeof sop.deadline === "string" ? sop.deadline : "",
       status: typeof sop.status === "string" ? sop.status : "Draft",
       content: typeof sop.content === "string" ? sop.content : "",
+      googleDocsLink:
+        typeof sop.google_docs_link === "string" ? sop.google_docs_link : undefined,
     })),
     lors: shortlistLors.map((lor) => ({
       id: String(lor.id),
@@ -71,7 +129,10 @@ async function getShortlistData(token: string) {
       status: typeof lor.status === "string" ? lor.status : "Requested",
       content: typeof lor.content === "string" ? lor.content : "",
       professorName: lor.professor_name || "Professor",
+      googleDocsLink:
+        typeof lor.google_docs_link === "string" ? lor.google_docs_link : undefined,
     })),
+    resources: resourcesWithOpenUrl,
   };
 }
 

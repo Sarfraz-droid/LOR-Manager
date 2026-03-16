@@ -1,7 +1,7 @@
 "use client";
 
 import { format } from "date-fns";
-import { BookOpen, Calendar, ExternalLink, FileText, GraduationCap, Share2, Sparkles, User } from "lucide-react";
+import { BookOpen, Calendar, ExternalLink, FileText, GraduationCap, Plus, Share2, Sparkles, User } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -108,7 +108,7 @@ export function CollegeDashboardDialog({
                 </CardTitle>
               </div>
               <Button size="sm" className="bg-primary text-primary-foreground" onClick={onCreateSop}>
-                <Sparkles className="mr-2 h-4 w-4" />
+                <Plus className="mr-2 h-4 w-4" />
                 Add SOP
               </Button>
             </CardHeader>

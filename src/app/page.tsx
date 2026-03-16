@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { BookOpen, Building2, GraduationCap, LogOut, Menu, X } from "lucide-react";
+import { BookOpen, Building2, FolderOpen, GraduationCap, LogOut, Menu, X } from "lucide-react";
 import { motion } from "motion/react";
 import { useLoRStore } from "@/lib/store";
 import { useSopStore } from "@/lib/sopStore";
@@ -9,6 +9,7 @@ import type { LoRRequest, SopEntry } from "@/lib/types";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { LandingPage } from "@/components/landing/LandingPage";
 import { CollegeManagementSection } from "@/components/dashboard/CollegeManagementSection";
+import { GlobalResourcesSection } from "@/components/dashboard/GlobalResourcesSection";
 import { ProfessorCard } from "@/components/dashboard/ProfessorCard";
 import { NewProfessorDialog } from "@/components/dashboard/NewProfessorDialog";
 import { LoREditor } from "@/components/dashboard/LoREditor";
@@ -27,6 +28,7 @@ export default function Home() {
     professors,
     applications,
     requests,
+    resources,
     isLoading,
     signIn,
     signUp,
@@ -35,6 +37,10 @@ export default function Home() {
     addProfessor,
     addRequest,
     addApplication,
+    addResource,
+    uploadResource,
+    updateResourceTags,
+    deleteResource,
     updateRequestContent,
     generateShareToken,
     generateApplicationShareToken,
@@ -56,7 +62,7 @@ export default function Home() {
   const [editingRequest, setEditingRequest] = useState<LoRRequest | null>(null);
   const [editingSop, setEditingSop] = useState<SopEntry | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-    const [activeTab, setActiveTab] = useState<"colleges" | "professors">("colleges");
+    const [activeTab, setActiveTab] = useState<"colleges" | "professors" | "resources">("colleges");
 
   const handleSaveLoR = (content: string) => {
     if (!editingRequest) return;
@@ -192,6 +198,13 @@ export default function Home() {
               <GraduationCap className="h-4 w-4" />
               <span className="text-sm font-medium">Professors</span>
             </button>
+            <button
+              onClick={() => { setActiveTab("resources"); setSidebarOpen(false); }}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg w-full text-left transition-colors ${activeTab === "resources" ? "bg-primary/20 text-primary" : "hover:bg-secondary/70"}`}
+            >
+              <FolderOpen className="h-4 w-4" />
+              <span className="text-sm font-medium">Resources</span>
+            </button>
         </nav>
 
         <div className="mt-auto flex flex-col gap-3">
@@ -278,6 +291,16 @@ export default function Home() {
               )}
             </div>
           )}
+        {activeTab === "resources" && (
+          <GlobalResourcesSection
+            applications={applications}
+            resources={resources}
+            addResource={addResource}
+            uploadResource={uploadResource}
+            updateResourceTags={updateResourceTags}
+            deleteResource={deleteResource}
+          />
+        )}
       </main>
     </div>
   );

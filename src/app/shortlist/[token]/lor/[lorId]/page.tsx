@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { LorPreviewView } from "./LorPreviewView";
 
 interface PageProps {
@@ -13,6 +13,7 @@ type SharedLorRow = {
   status: string | null;
   content: string | null;
   professor_name: string | null;
+  google_docs_link: string | null;
 };
 
 type SharedShortlistRow = {
@@ -55,6 +56,8 @@ async function getLorData(token: string, lorId: string) {
       typeof shortlist.program === "string" ? shortlist.program : "Program",
     deadline: typeof lor.deadline === "string" ? lor.deadline : "",
     status: typeof lor.status === "string" ? lor.status : "Requested",
+    googleDocsLink:
+      typeof lor.google_docs_link === "string" ? lor.google_docs_link : undefined,
   };
 }
 
@@ -64,6 +67,10 @@ export default async function LorPreviewPage({ params }: PageProps) {
 
   if (!data) {
     notFound();
+  }
+
+  if (data.googleDocsLink) {
+    redirect(data.googleDocsLink);
   }
 
   return (

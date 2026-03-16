@@ -10,7 +10,7 @@ import { NewSopDialog } from "@/components/dashboard/NewSopDialog";
 import { useToast } from "@/hooks/use-toast";
 import type { LoRRequest, Professor, SopEntry, UniversityApplication } from "@/lib/types";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ExternalLink, Loader2, Share2, Trash2 } from "lucide-react";
+import { BookOpen, ExternalLink, FileText, Loader2, Share2, Trash2 } from "lucide-react";
 
 interface CollegeManagementSectionProps {
   applications: UniversityApplication[];
@@ -109,18 +109,18 @@ export function CollegeManagementSection({
             <p className="text-sm text-muted-foreground font-body">{description}</p>
           </div>
           <div className="flex gap-2">
-            <NewRequestDialog
+            {/* <NewRequestDialog
               professors={professors}
               applications={applications}
               onAdd={addRequest}
               initialApplicationId={shortlistForRequest}
               onInitialApplicationHandled={() => setShortlistForRequest(null)}
-            />
-            <NewSopDialog
+            /> */}
+            {/* <NewSopDialog
               onAdd={addSop}
               initialApplication={shortlistedApplicationForSop}
               onInitialApplicationHandled={() => setShortlistForSop(null)}
-            />
+            /> */}
             <NewApplicationDialog onAdd={addApplication} />
           </div>
         </div>
@@ -155,6 +155,8 @@ export function CollegeManagementSection({
                       sop.program === app.program)
                   );
                   const appRequests = requests.filter((request) => request.applicationId === app.id);
+                  const sopDocLink = appSops.find((sop) => Boolean(sop.googleDocsLink))?.googleDocsLink;
+                  const lorDocLink = appRequests.find((request) => Boolean(request.googleDocsLink))?.googleDocsLink;
 
                   return (
                     <TableRow key={app.id}>
@@ -177,8 +179,36 @@ export function CollegeManagementSection({
                           {app.deadline}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-center font-semibold text-primary">{appSops.length}</TableCell>
-                      <TableCell className="text-center font-semibold text-primary">{appRequests.length}</TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex flex-col items-center gap-1">
+                          <span className="font-semibold text-primary">{appSops.length}</span>
+                          {sopDocLink && (
+                            <a
+                              href={sopDocLink}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-xs text-primary hover:underline"
+                            >
+                              Open Doc
+                            </a>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex flex-col items-center gap-1">
+                          <span className="font-semibold text-primary">{appRequests.length}</span>
+                          {lorDocLink && (
+                            <a
+                              href={lorDocLink}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-xs text-primary hover:underline"
+                            >
+                              Open Doc
+                            </a>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell className="max-w-xs text-sm text-muted-foreground">
                         <span className="line-clamp-2">{app.description || "No shortlist notes provided."}</span>
                       </TableCell>
@@ -216,47 +246,53 @@ export function CollegeManagementSection({
                           </Button>
                           <Button
                             variant="outline"
-                            size="sm"
-                            className="border-accent/30 text-accent hover:bg-accent hover:text-accent-foreground"
+                            size="icon"
+                            className="h-8 w-8 border-accent/30 text-accent hover:bg-accent/10"
                             onClick={() => setShortlistForSop(app.id)}
+                            title="Add SOP"
+                            aria-label="Add SOP"
                           >
-                            Add SOP
+                            <FileText className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="outline"
-                            size="sm"
-                            className="border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground"
+                            size="icon"
+                            className="h-8 w-8 border-primary/30 text-primary hover:bg-primary/10"
                             onClick={() => setShortlistForRequest(app.id)}
+                            title="Add LOR"
+                            aria-label="Add LOR"
                           >
-                            Add LOR
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="border-info/50 text-info hover:bg-info/15"
-                            disabled={sharingApplicationId === app.id || deletingApplicationId === app.id}
-                            onClick={() => void handleShareShortlist(app.id)}
-                          >
-                            {sharingApplicationId === app.id ? (
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            ) : (
-                              <Share2 className="mr-2 h-4 w-4" />
-                            )}
-                            {sharingApplicationId === app.id ? "Sharing..." : "Share"}
+                            <BookOpen className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="ghost"
-                            size="sm"
+                            size="icon"
+                            className="h-8 w-8 text-info hover:bg-info/15 hover:text-info"
+                            disabled={sharingApplicationId === app.id || deletingApplicationId === app.id}
+                            onClick={() => void handleShareShortlist(app.id)}
+                            title="Share shortlist"
+                            aria-label="Share shortlist"
+                          >
+                            {sharingApplicationId === app.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Share2 className="h-4 w-4" />
+                            )}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             onClick={() => void handleDeleteApplication(app.id)}
                             disabled={deletingApplicationId === app.id || sharingApplicationId === app.id}
-                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                            title="Remove shortlist"
+                            aria-label="Remove shortlist"
                           >
                             {deletingApplicationId === app.id ? (
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
-                              <Trash2 className="mr-2 h-4 w-4" />
+                              <Trash2 className="h-4 w-4" />
                             )}
-                            {deletingApplicationId === app.id ? "Removing..." : "Remove"}
                           </Button>
                         </div>
                       </TableCell>

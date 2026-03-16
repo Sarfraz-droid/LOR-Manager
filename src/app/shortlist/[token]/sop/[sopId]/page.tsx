@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { SopPreviewView } from "./SopPreviewView";
 
 interface PageProps {
@@ -12,6 +12,7 @@ type SharedSopRow = {
   deadline: string | null;
   status: string | null;
   content: string | null;
+  google_docs_link: string | null;
 };
 
 type SharedShortlistRow = {
@@ -49,6 +50,8 @@ async function getSopData(token: string, sopId: string) {
         : "University",
     deadline: typeof sop.deadline === "string" ? sop.deadline : "",
     status: typeof sop.status === "string" ? sop.status : "Draft",
+    googleDocsLink:
+      typeof sop.google_docs_link === "string" ? sop.google_docs_link : undefined,
   };
 }
 
@@ -58,6 +61,10 @@ export default async function SopPreviewPage({ params }: PageProps) {
 
   if (!data) {
     notFound();
+  }
+
+  if (data.googleDocsLink) {
+    redirect(data.googleDocsLink);
   }
 
   return (
