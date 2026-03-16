@@ -24,18 +24,13 @@ export default function CollegesPage() {
     requests,
     isLoading,
     addApplication,
-    addRequest,
     updateRequestContent,
     generateShareToken,
-    generateApplicationShareToken,
-    deleteApplication,
   } = useLoRStore();
   const {
     sops,
     isLoading: isSopLoading,
-    addSop,
     updateSopContent,
-    removeSopsForApplication,
   } = useSopStore(user?.id ?? null);
   const { toast } = useToast();
   const { geminiKey } = useGeminiKey();
@@ -170,15 +165,7 @@ export default function CollegesPage() {
           applications={applications}
           requests={requests}
           sops={sops}
-          professors={professors}
           addApplication={addApplication}
-          addRequest={addRequest}
-          addSop={addSop}
-          deleteApplication={deleteApplication}
-          removeSopsForApplication={removeSopsForApplication}
-          generateApplicationShareToken={generateApplicationShareToken}
-          onOpenSop={setEditingSop}
-          onOpenLor={setEditingRequest}
           title="College Workspace"
           description="This page is fully college-first: shortlist each college, inspect its connected SOPs and LORs, and share a public shortlist link."
           emptyMessage="No colleges added yet. Start by creating a shortlist."

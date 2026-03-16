@@ -1,30 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { NewApplicationDialog } from "@/components/dashboard/NewApplicationDialog";
-import { NewRequestDialog } from "@/components/dashboard/NewRequestDialog";
-import { NewSopDialog } from "@/components/dashboard/NewSopDialog";
-import { useToast } from "@/hooks/use-toast";
-import type { LoRRequest, Professor, SopEntry, UniversityApplication } from "@/lib/types";
+import type { LoRRequest, SopEntry, UniversityApplication } from "@/lib/types";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { BookOpen, ExternalLink, FileText, Loader2, Share2, Trash2 } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 
 interface CollegeManagementSectionProps {
   applications: UniversityApplication[];
   requests: LoRRequest[];
   sops: SopEntry[];
-  professors: Professor[];
   addApplication: (application: UniversityApplication) => void | Promise<void>;
-  addRequest: (request: LoRRequest) => void | Promise<void>;
-  addSop: (sop: SopEntry) => void | Promise<void>;
-  deleteApplication: (applicationId: string) => void | Promise<void>;
-  removeSopsForApplication: (applicationId: string) => void;
-  generateApplicationShareToken: (applicationId: string) => Promise<string | null>;
-  onOpenSop: (sop: SopEntry) => void;
-  onOpenLor: (request: LoRRequest) => void;
   title?: string;
   description?: string;
   emptyMessage?: string;
@@ -34,72 +22,11 @@ export function CollegeManagementSection({
   applications,
   requests,
   sops,
-  professors,
   addApplication,
-  addRequest,
-  addSop,
-  deleteApplication,
-  removeSopsForApplication,
-  generateApplicationShareToken,
-  onOpenSop,
-  onOpenLor,
   title = "College Shortlists",
   description = "Open each college dashboard to review the shortlist, its connected SOPs, connected LORs, and its public share link.",
   emptyMessage = "No college shortlists tracked yet.",
 }: CollegeManagementSectionProps) {
-  const { toast } = useToast();
-  const [shortlistForRequest, setShortlistForRequest] = useState<string | null>(null);
-  const [shortlistForSop, setShortlistForSop] = useState<string | null>(null);
-  const [sharingApplicationId, setSharingApplicationId] = useState<string | null>(null);
-  const [deletingApplicationId, setDeletingApplicationId] = useState<string | null>(null);
-
-  const shortlistedApplicationForSop = useMemo(
-    () => applications.find((application) => application.id === shortlistForSop) ?? null,
-    [applications, shortlistForSop]
-  );
-
-  const handleShareShortlist = async (applicationId: string) => {
-    try {
-      setSharingApplicationId(applicationId);
-      const token = await generateApplicationShareToken(applicationId);
-      if (!token) {
-        toast({
-          title: "Unable to share shortlist",
-          description: "Please try again in a moment.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin;
-
-      try {
-        await navigator.clipboard.writeText(`${baseUrl}/shortlist/${token}`);
-        toast({
-          title: "Public link copied",
-          description: "The college shortlist link is ready to share.",
-        });
-      } catch {
-        toast({
-          title: "Share link created",
-          description: `${baseUrl}/shortlist/${token}`,
-        });
-      }
-    } finally {
-      setSharingApplicationId(null);
-    }
-  };
-
-  const handleDeleteApplication = async (applicationId: string) => {
-    try {
-      setDeletingApplicationId(applicationId);
-      await deleteApplication(applicationId);
-      removeSopsForApplication(applicationId);
-    } finally {
-      setDeletingApplicationId(null);
-    }
-  };
-
   return (
     <>
       <div className="space-y-6">
@@ -109,18 +36,6 @@ export function CollegeManagementSection({
             <p className="text-sm text-muted-foreground font-body">{description}</p>
           </div>
           <div className="flex gap-2">
-            {/* <NewRequestDialog
-              professors={professors}
-              applications={applications}
-              onAdd={addRequest}
-              initialApplicationId={shortlistForRequest}
-              onInitialApplicationHandled={() => setShortlistForRequest(null)}
-            /> */}
-            {/* <NewSopDialog
-              onAdd={addSop}
-              initialApplication={shortlistedApplicationForSop}
-              onInitialApplicationHandled={() => setShortlistForSop(null)}
-            /> */}
             <NewApplicationDialog onAdd={addApplication} />
           </div>
         </div>
@@ -243,56 +158,6 @@ export function CollegeManagementSection({
                               <ExternalLink className="mr-2 h-4 w-4" />
                               Open Page
                             </Link>
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-8 w-8 border-accent/30 text-accent hover:bg-accent/10"
-                            onClick={() => setShortlistForSop(app.id)}
-                            title="Add SOP"
-                            aria-label="Add SOP"
-                          >
-                            <FileText className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-8 w-8 border-primary/30 text-primary hover:bg-primary/10"
-                            onClick={() => setShortlistForRequest(app.id)}
-                            title="Add LOR"
-                            aria-label="Add LOR"
-                          >
-                            <BookOpen className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-info hover:bg-info/15 hover:text-info"
-                            disabled={sharingApplicationId === app.id || deletingApplicationId === app.id}
-                            onClick={() => void handleShareShortlist(app.id)}
-                            title="Share shortlist"
-                            aria-label="Share shortlist"
-                          >
-                            {sharingApplicationId === app.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Share2 className="h-4 w-4" />
-                            )}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => void handleDeleteApplication(app.id)}
-                            disabled={deletingApplicationId === app.id || sharingApplicationId === app.id}
-                            className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                            title="Remove shortlist"
-                            aria-label="Remove shortlist"
-                          >
-                            {deletingApplicationId === app.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Trash2 className="h-4 w-4" />
-                            )}
                           </Button>
                         </div>
                       </TableCell>

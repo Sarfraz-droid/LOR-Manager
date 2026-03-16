@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import { useParams } from "next/navigation";
 import { ArrowLeft, BookOpen, Calendar, ExternalLink, FileText, GraduationCap, Link2, Loader2, Plus, Share2, Trash2, User } from "lucide-react";
 import { ApplicationResourcesSection } from "@/components/dashboard/ApplicationResourcesSection";
+import { NewApplicationDialog } from "@/components/dashboard/NewApplicationDialog";
 import { LoREditor } from "@/components/dashboard/LoREditor";
 import { NewRequestDialog } from "@/components/dashboard/NewRequestDialog";
 import { NewSopDialog } from "@/components/dashboard/NewSopDialog";
@@ -38,6 +39,7 @@ export default function CollegeDetailPage() {
     resources,
     isLoading,
     addRequest,
+    updateApplication,
     addResource,
     uploadResource,
     updateResourceTags,
@@ -339,6 +341,19 @@ export default function CollegeDetailPage() {
                 <Calendar className="mr-2 h-4 w-4" />
                 {formatDeadline(application.deadline)}
               </Badge>
+              <NewApplicationDialog
+                mode="edit"
+                initialApplication={application}
+                onUpdate={updateApplication}
+              >
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-primary text-primary hover:bg-primary/10"
+                >
+                  Edit Shortlist
+                </Button>
+              </NewApplicationDialog>
               <Button
                 variant="outline"
                 size="sm"

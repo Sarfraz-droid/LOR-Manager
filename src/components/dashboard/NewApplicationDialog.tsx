@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { ReactNode, useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,33 +9,99 @@ import { Textarea } from "@/components/ui/textarea";
 import { Loader2, PlusCircle } from "lucide-react";
 import { UniversityApplication } from "@/lib/types";
 
-export function NewApplicationDialog({ onAdd }: { onAdd: (a: UniversityApplication) => void | Promise<void> }) {
+type ApplicationFormData = {
+  university: string;
+  program: string;
+  deadline: string;
+  description: string;
+  relevantLinks: string;
+};
+
+type NewApplicationDialogProps = {
+  mode?: "create" | "edit";
+  initialApplication?: UniversityApplication;
+  onAdd?: (a: UniversityApplication) => void | Promise<void | boolean> | boolean;
+  onUpdate?: (
+    id: string,
+    updates: Pick<UniversityApplication, "university" | "program" | "deadline" | "description" | "relevantLinks">
+  ) => void | Promise<void | boolean> | boolean;
+  children?: ReactNode;
+};
+
+const EMPTY_FORM: ApplicationFormData = {
+  university: "",
+  program: "",
+  deadline: "",
+  description: "",
+  relevantLinks: "",
+};
+
+function toFormData(application?: UniversityApplication): ApplicationFormData {
+  if (!application) return EMPTY_FORM;
+  return {
+    university: application.university,
+    program: application.program,
+    deadline: application.deadline,
+    description: application.description,
+    relevantLinks: application.relevantLinks.join("\n"),
+  };
+}
+
+function parseLinks(value: string): string[] {
+  return value
+    .split(/\r?\n|,/)
+    .map((link) => link.trim())
+    .filter((link) => link.length > 0);
+}
+
+export function NewApplicationDialog({
+  mode = "create",
+  initialApplication,
+  onAdd,
+  onUpdate,
+  children,
+}: NewApplicationDialogProps) {
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState({
-    university: "",
-    program: "",
-    deadline: "",
-    description: "",
-    relevantLinks: "",
-  });
+  const [formData, setFormData] = useState<ApplicationFormData>(toFormData(initialApplication));
+  const isEditMode = mode === "edit";
+
+  const dialogTitle = useMemo(
+    () => (isEditMode ? "Edit College Shortlist" : "Add College Shortlist"),
+    [isEditMode]
+  );
+
+  useEffect(() => {
+    if (!open) return;
+    setFormData(toFormData(initialApplication));
+  }, [open, initialApplication]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       setIsSubmitting(true);
-      await onAdd({
-        id: Math.random().toString(36).substr(2, 9),
+      const nextValues = {
         university: formData.university,
         program: formData.program,
         deadline: formData.deadline,
         description: formData.description,
-        relevantLinks: formData.relevantLinks
-          .split(/\r?\n|,/) 
-          .map((link) => link.trim())
-          .filter((link) => link.length > 0),
-      });
-      setFormData({ university: "", program: "", deadline: "", description: "", relevantLinks: "" });
+        relevantLinks: parseLinks(formData.relevantLinks),
+      };
+
+      if (isEditMode) {
+        if (!initialApplication || !onUpdate) return;
+        await onUpdate(initialApplication.id, nextValues);
+      } else {
+        if (!onAdd) return;
+        await onAdd({
+          id: crypto.randomUUID(),
+          ...nextValues,
+        });
+      }
+
+      if (!isEditMode) {
+        setFormData(EMPTY_FORM);
+      }
       setOpen(false);
     } finally {
       setIsSubmitting(false);
@@ -45,13 +111,15 @@ export function NewApplicationDialog({ onAdd }: { onAdd: (a: UniversityApplicati
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="border-primary text-primary hover:bg-primary/10">
-          <PlusCircle className="mr-2 h-4 w-4" /> Add College Shortlist
-        </Button>
+        {children ?? (
+          <Button variant="outline" className="border-primary text-primary hover:bg-primary/10">
+            <PlusCircle className="mr-2 h-4 w-4" /> Add College Shortlist
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle className="text-primary">Add College Shortlist</DialogTitle>
+          <DialogTitle className="text-primary">{dialogTitle}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
           <div className="grid gap-2">
@@ -82,7 +150,7 @@ export function NewApplicationDialog({ onAdd }: { onAdd: (a: UniversityApplicati
           <DialogFooter>
             <Button type="submit" className="bg-primary text-primary-foreground" disabled={isSubmitting}>
               {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              {isSubmitting ? "Saving..." : "Save Shortlist"}
+              {isSubmitting ? "Saving..." : isEditMode ? "Update Shortlist" : "Save Shortlist"}
             </Button>
           </DialogFooter>
         </form>

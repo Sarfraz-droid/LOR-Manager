@@ -229,6 +229,33 @@ export function useLoRStore() {
     else console.error("addApplication:", error.message);
   }, [user]);
 
+  const updateApplication = useCallback(async (
+    id: string,
+    updates: Pick<UniversityApplication, "university" | "program" | "deadline" | "description" | "relevantLinks">
+  ) => {
+    const { error } = await supabase
+      .from("university_applications")
+      .update({
+        university: updates.university,
+        program: updates.program,
+        deadline: updates.deadline,
+        description: updates.description,
+        relevant_links: updates.relevantLinks,
+      })
+      .eq("id", id);
+
+    if (error) {
+      console.error("updateApplication:", error.message);
+      return;
+    }
+
+    setApplications((prev) =>
+      prev.map((application) =>
+        application.id === id ? { ...application, ...updates } : application
+      )
+    );
+  }, []);
+
   const addRequest = useCallback(async (req: LoRRequest) => {
     if (!user) return;
     const { error } = await supabase.from("lor_requests").insert({
@@ -536,6 +563,7 @@ export function useLoRStore() {
     signOut,
     addProfessor,
     addApplication,
+    updateApplication,
     addRequest,
     fetchResources,
     addResource,

@@ -35,7 +35,6 @@ export default function Home() {
     signInWithGoogle,
     signOut,
     addProfessor,
-    addRequest,
     addApplication,
     addResource,
     uploadResource,
@@ -43,17 +42,13 @@ export default function Home() {
     deleteResource,
     updateRequestContent,
     generateShareToken,
-    generateApplicationShareToken,
-    deleteApplication,
       deleteProfessor,
   } = useLoRStore();
 
   const {
     sops,
     isLoading: isSopLoading,
-    addSop,
     updateSopContent,
-    removeSopsForApplication,
   } = useSopStore(user?.id ?? null);
 
   const { toast } = useToast();
@@ -256,15 +251,7 @@ export default function Home() {
           applications={applications}
           requests={requests}
           sops={sops}
-          professors={professors}
           addApplication={addApplication}
-          addRequest={addRequest}
-          addSop={addSop}
-          deleteApplication={deleteApplication}
-          removeSopsForApplication={removeSopsForApplication}
-          generateApplicationShareToken={generateApplicationShareToken}
-          onOpenSop={setEditingSop}
-          onOpenLor={setEditingRequest}
           title="College List"
           description="Add your colleges first, then create SOP and LOR items from each college row."
           emptyMessage="No colleges tracked yet. Add a college to start building SOP and LOR items."
